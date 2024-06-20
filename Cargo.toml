@@ -11,8 +11,10 @@ eframe = { version = "0.27.2", features = [
     "default",
     "__screenshot", # __screenshot is so we can dump a screenshot using EFRAME_SCREENSHOT_TO
 ] }
+log = { version = "0.4.21" }
 env_logger = { version = "0.10", default-features = false, features = [
     "auto-color",
     "humantime",
 ] }
 tokio = { version = "1.38.0", features = ["full"] }
+rfd = { version = "0.14.1" }
