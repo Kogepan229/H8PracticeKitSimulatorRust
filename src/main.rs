@@ -1,31 +1,20 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-use std::{env, path::PathBuf};
+use std::{
+    env::{self, current_dir},
+    path::PathBuf,
+};
 
 use eframe::egui;
 use rfd::AsyncFileDialog;
 use std::sync::mpsc::{Receiver, Sender};
 
+mod emulator;
+
 #[tokio::main]
 async fn main() -> Result<(), eframe::Error> {
     env::set_var("RUST_LOG", "info");
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
-
-    let output = std::process::Command::new("./emulator/koge29_h8-3069f_emulator")
-        .arg("--version")
-        .output();
-    if let Ok(o) = output {
-    } else {
-        log::info!("Not found Emulator.");
-    }
-
-    let output = std::process::Command::new("ls .").arg("--version").output();
-    if let Ok(o) = output {
-        println!("{}", String::from_utf8_lossy(&o.stdout));
-    } else {
-        log::info!("ls failed");
-        log::error!("{}", output.err().unwrap().kind().to_string())
-    }
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_inner_size([320.0, 240.0]),
@@ -34,15 +23,22 @@ async fn main() -> Result<(), eframe::Error> {
     eframe::run_native(
         "H8 Practice Kit Simulator",
         options,
-        Box::new(|_cc| Box::<MyApp>::default()),
+        Box::new(|_cc| {
+            let mut app = Box::<MyApp>::default();
+            app.emulator_version = emulator::check_version();
+            if let Some(emulator_version) = &app.emulator_version {
+                log::info!("Emulator version: {}", emulator_version);
+            } else {
+                log::info!("Emulator is not found.");
+            }
+
+            app
+        }),
     )
 }
 
-struct Emulator {
-    version: String,
-}
-
 struct MyApp {
+    emulator_version: Option<String>,
     elf_path: String,
     elf_path_tx: Sender<PathBuf>,
     elf_path_rx: Receiver<PathBuf>,
@@ -53,6 +49,7 @@ impl Default for MyApp {
         let (elf_path_tx, elf_path_rx) = std::sync::mpsc::channel();
 
         Self {
+            emulator_version: None,
             elf_path: String::new(),
             elf_path_tx,
             elf_path_rx,
