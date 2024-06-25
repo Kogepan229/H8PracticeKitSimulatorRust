@@ -42,17 +42,24 @@ struct MyApp {
     elf_path: String,
     elf_path_tx: Sender<PathBuf>,
     elf_path_rx: Receiver<PathBuf>,
+    emu_exec_tx: Sender<emulator::Emulator>,
+    emu_exec_rx: Receiver<emulator::Emulator>,
+    emu: Option<emulator::Emulator>,
 }
 
 impl Default for MyApp {
     fn default() -> Self {
         let (elf_path_tx, elf_path_rx) = std::sync::mpsc::channel();
+        let (emu_exec_tx, emu_exec_rx) = std::sync::mpsc::channel();
 
         Self {
             emulator_version: None,
             elf_path: String::new(),
             elf_path_tx,
             elf_path_rx,
+            emu_exec_tx,
+            emu_exec_rx,
+            emu: None,
         }
     }
 }
@@ -70,7 +77,25 @@ impl eframe::App for MyApp {
                 self.elf_path = elf_path.to_str().unwrap().to_string();
             }
 
-            ui.text_edit_singleline(&mut self.elf_path)
+            ui.text_edit_singleline(&mut self.elf_path);
+
+            if ui.button("execute").clicked() {
+                let _emu_exec_tx = self.emu_exec_tx.clone();
+                tokio::spawn(async move {
+                    let emu = emulator::Emulator::execute().await;
+                    _emu_exec_tx.send(emu).unwrap();
+                });
+            }
+
+            if let Ok(emu) = self.emu_exec_rx.try_recv() {
+                self.emu = Some(emu);
+            }
+
+            if let Some(emu) = &self.emu {
+                if let Ok(emu_socket_received) = emu.socket_received.try_lock() {
+                    emu_socket_received.iter();
+                }
+            }
         });
     }
 }
@@ -85,8 +110,4 @@ fn select_elf(tx: Sender<PathBuf>) {
             tx.send(fi.path().to_path_buf()).unwrap();
         }
     });
-}
-
-fn exec_emulator(elf_path: PathBuf) {
-    // tokio::process::Command::new(program)
 }

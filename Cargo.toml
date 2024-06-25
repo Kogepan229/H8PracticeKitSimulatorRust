@@ -17,4 +17,5 @@ env_logger = { version = "0.10", default-features = false, features = [
     "humantime",
 ] }
 tokio = { version = "1.38.0", features = ["full"] }
+tokio-util = { version = "0.7.11", features = ["full"] }
 rfd = { version = "0.14.1" }

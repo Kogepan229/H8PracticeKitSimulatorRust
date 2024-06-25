@@ -1,3 +1,9 @@
+use std::{process::Stdio, sync::Arc};
+use tokio::{
+    net::{tcp::OwnedWriteHalf, TcpStream},
+    sync::Mutex,
+};
+
 pub static EMULATOR_PATH: &str = "./emulator/koge29_h8-3069f_emulator";
 
 pub fn check_version() -> Option<String> {
@@ -16,4 +22,57 @@ pub fn check_version() -> Option<String> {
         }
     }
     return None;
+}
+
+pub struct Emulator {
+    process: tokio::process::Child,
+    // process_reader: FramedRead<ChildStdout, LinesCodec>,
+    // stream: Box<TcpStream>,
+    pub socket_received: Arc<Mutex<Vec<String>>>,
+    socket_writer: OwnedWriteHalf,
+}
+
+impl Emulator {
+    pub async fn execute() -> Emulator {
+        let process = tokio::process::Command::new(EMULATOR_PATH)
+            .kill_on_drop(true)
+            .stdout(Stdio::piped())
+            .spawn()
+            .expect("Failed to start emulator.");
+        // let stdout = self.process.stdout.take().unwrap();
+        // self.process_reader = FramedRead::new(stdout, LinesCodec::new());
+        let stream = TcpStream::connect("127.0.0.1:12345").await.unwrap();
+        let (socket_reader, socket_writer) = stream.into_split();
+
+        let socket_received = Arc::new(Mutex::new(Vec::<String>::new()));
+        let _socket_received = socket_received.clone();
+        tokio::spawn(async move {
+            loop {
+                let mut msg = vec![0; 1024];
+                socket_reader.readable().await.unwrap();
+                match socket_reader.try_read(&mut msg) {
+                    Ok(n) => {
+                        msg.truncate(n);
+                        _socket_received
+                            .lock()
+                            .await
+                            .push(String::from_utf8(msg).unwrap());
+                    }
+                    Err(ref e) if e.kind() == tokio::io::ErrorKind::WouldBlock => {
+                        continue;
+                    }
+                    Err(e) => {
+                        println!("{}", e.to_string());
+                        return;
+                    }
+                }
+            }
+        });
+
+        Emulator {
+            process,
+            socket_received,
+            socket_writer,
+        }
+    }
 }
