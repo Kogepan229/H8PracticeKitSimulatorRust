@@ -3,6 +3,8 @@ use tokio::{
     net::{tcp::OwnedWriteHalf, TcpStream},
     sync::Mutex,
 };
+use tokio_stream::StreamExt;
+use tokio_util::codec::{FramedRead, LinesCodec};
 
 pub static EMULATOR_PATH: &str = "./emulator/koge29_h8-3069f_emulator";
 
@@ -33,14 +35,26 @@ pub struct Emulator {
 }
 
 impl Emulator {
-    pub async fn execute() -> Emulator {
-        let process = tokio::process::Command::new(EMULATOR_PATH)
+    pub async fn execute(elf_path: String) -> Emulator {
+        let mut process = tokio::process::Command::new(EMULATOR_PATH)
             .kill_on_drop(true)
+            .args(["-r", "--elf", &elf_path])
             .stdout(Stdio::piped())
             .spawn()
             .expect("Failed to start emulator.");
-        // let stdout = self.process.stdout.take().unwrap();
-        // self.process_reader = FramedRead::new(stdout, LinesCodec::new());
+
+        let stdout = process.stdout.take().unwrap();
+        let mut process_reader = FramedRead::new(stdout, LinesCodec::new());
+        if let ready = process_reader.next().await {
+            if !ready.is_some_and(|v| v.is_ok_and(|vv| vv == "ready")) {
+                panic!();
+            }
+        }
+
+        while let Some(line) = process_reader.next().await {
+            println!("{}", line.unwrap());
+        }
+
         let stream = TcpStream::connect("127.0.0.1:12345").await.unwrap();
         let (socket_reader, socket_writer) = stream.into_split();
 

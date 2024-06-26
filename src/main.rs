@@ -5,7 +5,7 @@ use std::{
     path::PathBuf,
 };
 
-use eframe::egui;
+use eframe::egui::{self, ScrollArea, TextStyle};
 use rfd::AsyncFileDialog;
 use std::sync::mpsc::{Receiver, Sender};
 
@@ -45,6 +45,7 @@ struct MyApp {
     emu_exec_tx: Sender<emulator::Emulator>,
     emu_exec_rx: Receiver<emulator::Emulator>,
     emu: Option<emulator::Emulator>,
+    emu_messages: Vec<String>,
 }
 
 impl Default for MyApp {
@@ -60,6 +61,7 @@ impl Default for MyApp {
             emu_exec_tx,
             emu_exec_rx,
             emu: None,
+            emu_messages: Vec::new(),
         }
     }
 }
@@ -81,8 +83,10 @@ impl eframe::App for MyApp {
 
             if ui.button("execute").clicked() {
                 let _emu_exec_tx = self.emu_exec_tx.clone();
+
+                let _elf_path = self.elf_path.clone();
                 tokio::spawn(async move {
-                    let emu = emulator::Emulator::execute().await;
+                    let emu = emulator::Emulator::execute(_elf_path).await;
                     _emu_exec_tx.send(emu).unwrap();
                 });
             }
@@ -93,9 +97,29 @@ impl eframe::App for MyApp {
 
             if let Some(emu) = &self.emu {
                 if let Ok(emu_socket_received) = emu.socket_received.try_lock() {
-                    emu_socket_received.iter();
+                    self.emu_messages.extend(emu_socket_received.clone());
                 }
             }
+
+            if self.emu.is_some() {
+                ui.label("Emulator is available.");
+            } else {
+                ui.label("Emulator is None.");
+            }
+
+            let text_style = TextStyle::Body;
+            let row_height = ui.text_style_height(&text_style);
+            ScrollArea::vertical().auto_shrink(false).show_rows(
+                ui,
+                row_height,
+                self.emu_messages.len(),
+                |ui, row_range| {
+                    for row in row_range {
+                        let text = &self.emu_messages[row];
+                        ui.label(text);
+                    }
+                },
+            )
         });
     }
 }
