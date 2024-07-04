@@ -35,27 +35,30 @@ pub struct Emulator {
 }
 
 impl Emulator {
-    pub async fn execute(elf_path: String) -> Emulator {
-        let mut process = tokio::process::Command::new(EMULATOR_PATH)
+    pub async fn execute(elf_path: String) -> Result<Emulator, String> {
+        let process = tokio::process::Command::new(EMULATOR_PATH)
             .kill_on_drop(true)
             .args(["-r", "--elf", &elf_path])
             .stdout(Stdio::piped())
             .spawn()
             .expect("Failed to start emulator.");
 
-        let stdout = process.stdout.take().unwrap();
-        let mut process_reader = FramedRead::new(stdout, LinesCodec::new());
-        if let ready = process_reader.next().await {
-            if !ready.is_some_and(|v| v.is_ok_and(|vv| vv == "ready")) {
-                panic!();
+        let stream: TcpStream;
+        loop {
+            let _stream = TcpStream::connect("127.0.0.1:12345").await;
+            match _stream {
+                Ok(s) => {
+                    stream = s;
+                    break;
+                }
+                Err(e) => {
+                    if process.id().is_none() {
+                        return Err(e.to_string());
+                    }
+                }
             }
         }
 
-        while let Some(line) = process_reader.next().await {
-            println!("{}", line.unwrap());
-        }
-
-        let stream = TcpStream::connect("127.0.0.1:12345").await.unwrap();
         let (socket_reader, socket_writer) = stream.into_split();
 
         let socket_received = Arc::new(Mutex::new(Vec::<String>::new()));
@@ -70,7 +73,11 @@ impl Emulator {
                         _socket_received
                             .lock()
                             .await
-                            .push(String::from_utf8(msg).unwrap());
+                            .push(String::from_utf8(msg.clone()).unwrap().trim().to_string());
+                        println!(
+                            "r: {}",
+                            String::from_utf8(msg.clone()).unwrap().trim().to_string()
+                        )
                     }
                     Err(ref e) if e.kind() == tokio::io::ErrorKind::WouldBlock => {
                         continue;
@@ -83,10 +90,10 @@ impl Emulator {
             }
         });
 
-        Emulator {
+        Ok(Emulator {
             process,
             socket_received,
             socket_writer,
-        }
+        })
     }
 }

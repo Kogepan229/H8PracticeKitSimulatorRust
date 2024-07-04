@@ -42,8 +42,8 @@ struct MyApp {
     elf_path: String,
     elf_path_tx: Sender<PathBuf>,
     elf_path_rx: Receiver<PathBuf>,
-    emu_exec_tx: Sender<emulator::Emulator>,
-    emu_exec_rx: Receiver<emulator::Emulator>,
+    emu_exec_tx: Sender<Result<emulator::Emulator, String>>,
+    emu_exec_rx: Receiver<Result<emulator::Emulator, String>>,
     emu: Option<emulator::Emulator>,
     emu_messages: Vec<String>,
 }
@@ -90,14 +90,17 @@ impl eframe::App for MyApp {
                     _emu_exec_tx.send(emu).unwrap();
                 });
             }
+            println!("main");
 
-            if let Ok(emu) = self.emu_exec_rx.try_recv() {
-                self.emu = Some(emu);
+            if let Ok(emu_r) = self.emu_exec_rx.try_recv() {
+                if let Ok(emu) = emu_r {
+                    self.emu = Some(emu);
+                }
             }
 
             if let Some(emu) = &self.emu {
-                if let Ok(emu_socket_received) = emu.socket_received.try_lock() {
-                    self.emu_messages.extend(emu_socket_received.clone());
+                if let Ok(mut emu_socket_received) = emu.socket_received.try_lock() {
+                    self.emu_messages.append(&mut emu_socket_received);
                 }
             }
 
