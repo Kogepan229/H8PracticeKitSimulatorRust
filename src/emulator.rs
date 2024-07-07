@@ -27,11 +27,11 @@ pub fn check_version() -> Option<String> {
 }
 
 pub struct Emulator {
-    process: tokio::process::Child,
+    pub process: tokio::process::Child,
     // process_reader: FramedRead<ChildStdout, LinesCodec>,
     // stream: Box<TcpStream>,
     pub socket_received: Arc<Mutex<Vec<String>>>,
-    socket_writer: OwnedWriteHalf,
+    pub socket_writer: OwnedWriteHalf,
 }
 
 impl Emulator {
@@ -69,6 +69,9 @@ impl Emulator {
                 socket_reader.readable().await.unwrap();
                 match socket_reader.try_read(&mut msg) {
                     Ok(n) => {
+                        if n == 0 {
+                            break;
+                        }
                         msg.truncate(n);
                         _socket_received
                             .lock()

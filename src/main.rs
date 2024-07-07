@@ -86,6 +86,7 @@ impl Default for MyApp {
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
+            // println!("main s");
             ui.label("Hello");
             if ui.button("Select elf").clicked() {
                 select_elf(self.elf_path_tx.clone());
@@ -107,11 +108,21 @@ impl eframe::App for MyApp {
                     _emu_exec_tx.send(emu).unwrap();
                 });
             }
-            println!("main");
 
             if let Ok(emu_r) = self.emu_exec_rx.try_recv() {
                 if let Ok(emu) = emu_r {
                     self.emu = Some(emu);
+                } else {
+                    println!("{}", emu_r.err().unwrap().to_string());
+                }
+            }
+
+            if self.emu.is_some() {
+                if let Ok(r) = self.emu.as_mut().unwrap().process.try_wait() {
+                    if let Some(status) = r {
+                        println!("{}", status.to_string());
+                        self.emu = None;
+                    }
                 }
             }
 
@@ -139,7 +150,8 @@ impl eframe::App for MyApp {
                         ui.label(text);
                     }
                 },
-            )
+            );
+            // println!("main e");
         });
     }
 }
