@@ -103,8 +103,9 @@ impl eframe::App for MyApp {
                 let _emu_exec_tx = self.emu_exec_tx.clone();
 
                 let _elf_path = self.elf_path.clone();
+                let _ctx = ctx.clone();
                 tokio::spawn(async move {
-                    let emu = emulator::Emulator::execute(_elf_path).await;
+                    let emu = emulator::Emulator::execute(_elf_path, _ctx).await;
                     _emu_exec_tx.send(emu).unwrap();
                 });
             }
@@ -140,17 +141,15 @@ impl eframe::App for MyApp {
 
             let text_style = TextStyle::Body;
             let row_height = ui.text_style_height(&text_style);
-            ScrollArea::vertical().auto_shrink(false).show_rows(
-                ui,
-                row_height,
-                self.emu_messages.len(),
-                |ui, row_range| {
+            ScrollArea::vertical()
+                .stick_to_bottom(true)
+                .auto_shrink(false)
+                .show_rows(ui, row_height, self.emu_messages.len(), |ui, row_range| {
                     for row in row_range {
                         let text = &self.emu_messages[row];
                         ui.label(text);
                     }
-                },
-            );
+                });
             // println!("main e");
         });
     }

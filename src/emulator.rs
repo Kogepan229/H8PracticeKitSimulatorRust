@@ -1,3 +1,4 @@
+use eframe::egui;
 use std::{process::Stdio, sync::Arc};
 use tokio::{
     net::{tcp::OwnedWriteHalf, TcpStream},
@@ -35,7 +36,7 @@ pub struct Emulator {
 }
 
 impl Emulator {
-    pub async fn execute(elf_path: String) -> Result<Emulator, String> {
+    pub async fn execute(elf_path: String, ctx: egui::Context) -> Result<Emulator, String> {
         let process = tokio::process::Command::new(EMULATOR_PATH)
             .kill_on_drop(true)
             .args(["-r", "--elf", &elf_path])
@@ -77,6 +78,7 @@ impl Emulator {
                             .lock()
                             .await
                             .push(String::from_utf8(msg.clone()).unwrap().trim().to_string());
+                        ctx.request_repaint();
                         println!(
                             "r: {}",
                             String::from_utf8(msg.clone()).unwrap().trim().to_string()
