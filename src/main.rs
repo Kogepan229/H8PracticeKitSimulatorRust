@@ -3,13 +3,11 @@
 use std::{
     env::{self, current_dir},
     path::PathBuf,
-    time::Duration,
 };
 
 use eframe::egui::{self, ScrollArea, TextStyle};
 use rfd::AsyncFileDialog;
 use std::sync::mpsc::{Receiver, Sender};
-use tokio::runtime::Runtime;
 
 mod emulator;
 
@@ -17,21 +15,6 @@ mod emulator;
 async fn main() -> Result<(), eframe::Error> {
     env::set_var("RUST_LOG", "info");
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
-
-    let rt = Runtime::new().expect("Unable to create Runtime");
-
-    // Enter the runtime so that `tokio::spawn` is available immediately.
-    let _enter = rt.enter();
-
-    // Execute the runtime in its own thread.
-    // The future doesn't have to do anything. In this example, it just sleeps forever.
-    std::thread::spawn(move || {
-        rt.block_on(async {
-            loop {
-                tokio::time::sleep(Duration::from_secs(3600)).await;
-            }
-        })
-    });
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_inner_size([320.0, 240.0]),
