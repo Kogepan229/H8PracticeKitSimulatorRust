@@ -34,7 +34,7 @@ async fn main() -> Result<(), eframe::Error> {
                 log::info!("Emulator is not found.");
             }
 
-            app
+            Ok(app)
         }),
     )
 }
