@@ -1,11 +1,11 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 use std::{
-    env::{self, current_dir},
+    env::{self},
     path::PathBuf,
 };
 
-use eframe::egui::{self, ScrollArea, TextStyle};
+use eframe::egui::{self, ScrollArea, TextStyle, Vec2};
 use rfd::AsyncFileDialog;
 use std::sync::mpsc::{Receiver, Sender};
 
@@ -42,6 +42,7 @@ async fn main() -> Result<(), eframe::Error> {
 struct MyApp {
     emulator_version: Option<String>,
     elf_path: String,
+    elf_args: String,
     elf_path_tx: Sender<PathBuf>,
     elf_path_rx: Receiver<PathBuf>,
     emu_exec_tx: Sender<Result<emulator::Emulator, String>>,
@@ -58,6 +59,7 @@ impl Default for MyApp {
         Self {
             emulator_version: None,
             elf_path: String::new(),
+            elf_args: String::new(),
             elf_path_tx,
             elf_path_rx,
             emu_exec_tx,
@@ -80,16 +82,32 @@ impl eframe::App for MyApp {
                 println!("{}", elf_path.to_str().unwrap().to_string());
                 self.elf_path = elf_path.to_str().unwrap().to_string();
             }
-            ui.text_edit_singleline(&mut self.elf_path);
+
+            // ui.set_width(ui.available_width());
+            ui.add_sized(
+                Vec2::new(ui.available_width(), 0f32),
+                egui::TextEdit::singleline(&mut self.elf_path),
+            );
+
+            ui.horizontal(|ui| {
+                // ui.horizontal_centered(|ui| ui.label("prog.elf"));
+                ui.label("prog.elf");
+                // ui.centered_and_justified(|ui| ui.label("prog.elf"));
+                ui.add_sized(
+                    Vec2::new(ui.available_width(), 0f32),
+                    egui::TextEdit::singleline(&mut self.elf_args),
+                )
+            });
 
             ui.horizontal(|ui| {
                 if ui.button("execute").clicked() {
                     let _emu_exec_tx = self.emu_exec_tx.clone();
 
                     let _elf_path = self.elf_path.clone();
+                    let _elf_args = self.elf_args.clone();
                     let _ctx = ctx.clone();
                     tokio::spawn(async move {
-                        let emu = emulator::Emulator::execute(_elf_path, _ctx).await;
+                        let emu = emulator::Emulator::execute(_elf_path, _elf_args, _ctx).await;
                         _emu_exec_tx.send(emu).unwrap();
                     });
                 }

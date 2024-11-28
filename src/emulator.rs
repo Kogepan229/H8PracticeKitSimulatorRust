@@ -4,8 +4,6 @@ use tokio::{
     net::{tcp::OwnedWriteHalf, TcpStream},
     sync::Mutex,
 };
-use tokio_stream::StreamExt;
-use tokio_util::codec::{FramedRead, LinesCodec};
 
 pub static EMULATOR_PATH: &str = "./emulator/koge29_h8-3069f_emulator";
 
@@ -36,10 +34,15 @@ pub struct Emulator {
 }
 
 impl Emulator {
-    pub async fn execute(elf_path: String, ctx: egui::Context) -> Result<Emulator, String> {
+    pub async fn execute(
+        elf_path: String,
+        elf_args: String,
+        ctx: egui::Context,
+    ) -> Result<Emulator, String> {
+        let arg = "-a=".to_string() + &elf_args;
         let process = tokio::process::Command::new(EMULATOR_PATH)
             .kill_on_drop(true)
-            .args(["--elf", &elf_path, "-r", "-s"])
+            .args(["--elf", &elf_path, "-r", "-s", arg.as_str()])
             .stdout(Stdio::piped())
             .spawn()
             .expect("Failed to start emulator.");
