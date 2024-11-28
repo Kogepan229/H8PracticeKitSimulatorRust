@@ -39,7 +39,7 @@ impl Emulator {
     pub async fn execute(elf_path: String, ctx: egui::Context) -> Result<Emulator, String> {
         let process = tokio::process::Command::new(EMULATOR_PATH)
             .kill_on_drop(true)
-            .args(["-r", "--elf", &elf_path])
+            .args(["--elf", &elf_path, "-r", "-s"])
             .stdout(Stdio::piped())
             .spawn()
             .expect("Failed to start emulator.");
