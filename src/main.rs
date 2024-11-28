@@ -82,16 +82,26 @@ impl eframe::App for MyApp {
             }
             ui.text_edit_singleline(&mut self.elf_path);
 
-            if ui.button("execute").clicked() {
-                let _emu_exec_tx = self.emu_exec_tx.clone();
+            ui.horizontal(|ui| {
+                if ui.button("execute").clicked() {
+                    let _emu_exec_tx = self.emu_exec_tx.clone();
 
-                let _elf_path = self.elf_path.clone();
-                let _ctx = ctx.clone();
-                tokio::spawn(async move {
-                    let emu = emulator::Emulator::execute(_elf_path, _ctx).await;
-                    _emu_exec_tx.send(emu).unwrap();
+                    let _elf_path = self.elf_path.clone();
+                    let _ctx = ctx.clone();
+                    tokio::spawn(async move {
+                        let emu = emulator::Emulator::execute(_elf_path, _ctx).await;
+                        _emu_exec_tx.send(emu).unwrap();
+                    });
+                }
+
+                ui.add_enabled_ui(self.emu.is_some(), |ui| {
+                    if ui.button("stop").clicked() {
+                        if let Some(emu) = &mut self.emu {
+                            emu.process.start_kill().unwrap();
+                        }
+                    }
                 });
-            }
+            });
 
             if let Ok(emu_r) = self.emu_exec_rx.try_recv() {
                 if let Ok(emu) = emu_r {
