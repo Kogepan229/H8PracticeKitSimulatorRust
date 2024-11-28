@@ -17,7 +17,9 @@ async fn main() -> Result<(), eframe::Error> {
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
 
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([320.0, 240.0]),
+        viewport: egui::ViewportBuilder::default()
+            .with_inner_size([640.0, 480.0])
+            .with_min_inner_size([320.0, 240.0]),
         ..Default::default()
     };
     eframe::run_native(
@@ -70,7 +72,6 @@ impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             // println!("main s");
-            ui.label("Hello");
             if ui.button("Select elf").clicked() {
                 select_elf(self.elf_path_tx.clone());
             }
@@ -79,7 +80,6 @@ impl eframe::App for MyApp {
                 println!("{}", elf_path.to_str().unwrap().to_string());
                 self.elf_path = elf_path.to_str().unwrap().to_string();
             }
-
             ui.text_edit_singleline(&mut self.elf_path);
 
             if ui.button("execute").clicked() {
@@ -133,6 +133,12 @@ impl eframe::App for MyApp {
                         ui.label(text);
                     }
                 });
+
+            let mut frame = egui::Frame::default().inner_margin(4.0).begin(ui);
+            frame.frame.fill = egui::Color32::RED;
+            frame.end(ui);
+            // frame.paint(ui);
+
             // println!("main e");
         });
     }
