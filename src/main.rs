@@ -73,7 +73,6 @@ impl Default for MyApp {
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            // println!("main s");
             if ui.button("Select elf").clicked() {
                 select_elf(self.elf_path_tx.clone());
             }
@@ -83,23 +82,25 @@ impl eframe::App for MyApp {
                 self.elf_path = elf_path.to_str().unwrap().to_string();
             }
 
-            // ui.set_width(ui.available_width());
             ui.add_sized(
                 Vec2::new(ui.available_width(), 0f32),
                 egui::TextEdit::singleline(&mut self.elf_path),
             );
 
-            ui.horizontal(|ui| {
-                // ui.horizontal_centered(|ui| ui.label("prog.elf"));
+            ui.add_space(4.0);
+
+            ui.label("Args");
+            ui.with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui| {
                 ui.label("prog.elf");
-                // ui.centered_and_justified(|ui| ui.label("prog.elf"));
                 ui.add_sized(
                     Vec2::new(ui.available_width(), 0f32),
                     egui::TextEdit::singleline(&mut self.elf_args),
                 )
             });
 
-            ui.horizontal(|ui| {
+            ui.add_space(4.0);
+
+            ui.with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui| {
                 if ui.button("execute").clicked() {
                     let _emu_exec_tx = self.emu_exec_tx.clone();
 
