@@ -106,6 +106,7 @@ impl eframe::App for MyApp {
                     let _elf_path = self.elf_path.clone();
                     let _elf_args = self.elf_args.clone();
                     let _ctx = ctx.clone();
+                    self.emu_messages.clear();
                     tokio::spawn(async move {
                         let emu = emulator::Emulator::execute(_elf_path, _elf_args, _ctx).await;
                         _emu_exec_tx.send(emu).unwrap();
@@ -150,6 +151,8 @@ impl eframe::App for MyApp {
                 ui.label("Emulator is None.");
             }
 
+            ui.separator();
+
             let text_style = TextStyle::Body;
             let row_height = ui.text_style_height(&text_style);
             ScrollArea::vertical()
@@ -165,9 +168,6 @@ impl eframe::App for MyApp {
             let mut frame = egui::Frame::default().inner_margin(4.0).begin(ui);
             frame.frame.fill = egui::Color32::RED;
             frame.end(ui);
-            // frame.paint(ui);
-
-            // println!("main e");
         });
     }
 }
