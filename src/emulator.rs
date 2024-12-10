@@ -102,10 +102,6 @@ impl Emulator {
     }
 
     pub fn pop_messages(&self) -> Vec<String> {
-        let mut messages = vec![];
-        for message in self.message_rx.try_iter() {
-            messages.push(message);
-        }
-        messages
+        Vec::from_iter(self.message_rx.try_iter())
     }
 }
