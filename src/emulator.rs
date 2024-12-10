@@ -78,10 +78,10 @@ impl Emulator {
                             .send(String::from_utf8(msg.clone()).unwrap().trim().to_string())
                             .unwrap();
                         ctx.request_repaint();
-                        println!(
-                            "r: {}",
-                            String::from_utf8(msg.clone()).unwrap().trim().to_string()
-                        )
+                        // println!(
+                        //     "r: {}",
+                        //     String::from_utf8(msg.clone()).unwrap().trim().to_string()
+                        // )
                     }
                     Err(ref e) if e.kind() == tokio::io::ErrorKind::WouldBlock => {
                         continue;
