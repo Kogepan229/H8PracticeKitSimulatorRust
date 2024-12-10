@@ -1,9 +1,9 @@
 use eframe::egui;
-use std::{process::Stdio, sync::Arc};
-use tokio::{
-    net::{tcp::OwnedWriteHalf, TcpStream},
-    sync::Mutex,
+use std::{
+    process::Stdio,
+    sync::mpsc::{channel, Receiver},
 };
+use tokio::net::{tcp::OwnedWriteHalf, TcpStream};
 
 pub static EMULATOR_PATH: &str = "./emulator/koge29_h8-3069f_emulator";
 
@@ -27,9 +27,7 @@ pub fn check_version() -> Option<String> {
 
 pub struct Emulator {
     pub process: tokio::process::Child,
-    // process_reader: FramedRead<ChildStdout, LinesCodec>,
-    // stream: Box<TcpStream>,
-    pub socket_received: Arc<Mutex<Vec<String>>>,
+    message_rx: Receiver<String>,
     pub socket_writer: OwnedWriteHalf,
 }
 
@@ -65,8 +63,7 @@ impl Emulator {
 
         let (socket_reader, socket_writer) = stream.into_split();
 
-        let socket_received = Arc::new(Mutex::new(Vec::<String>::new()));
-        let _socket_received = socket_received.clone();
+        let (message_tx, message_rx) = channel();
         tokio::spawn(async move {
             loop {
                 let mut msg = vec![0; 1024];
@@ -77,10 +74,9 @@ impl Emulator {
                             break;
                         }
                         msg.truncate(n);
-                        _socket_received
-                            .lock()
-                            .await
-                            .push(String::from_utf8(msg.clone()).unwrap().trim().to_string());
+                        message_tx
+                            .send(String::from_utf8(msg.clone()).unwrap().trim().to_string())
+                            .unwrap();
                         ctx.request_repaint();
                         println!(
                             "r: {}",
@@ -100,8 +96,16 @@ impl Emulator {
 
         Ok(Emulator {
             process,
-            socket_received,
+            message_rx,
             socket_writer,
         })
+    }
+
+    pub fn pop_messages(&self) -> Vec<String> {
+        let mut messages = vec![];
+        for message in self.message_rx.try_iter() {
+            messages.push(message);
+        }
+        messages
     }
 }
