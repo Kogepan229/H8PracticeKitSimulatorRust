@@ -5,6 +5,8 @@ use eframe::egui::{self, ScrollArea, TextStyle, Vec2};
 use rfd::AsyncFileDialog;
 use std::sync::{Arc, Mutex};
 
+const MAX_MESSAGE_LEN: usize = 5000;
+
 pub struct SimulatorUiStates {
     elf_path: Arc<Mutex<String>>,
     elf_args: String,
@@ -20,8 +22,11 @@ impl SimulatorUiStates {
         }
     }
 
-    pub fn push_messages(&mut self, messages: Vec<String>) {
-        self.messages.extend(messages);
+    pub fn push_messages(&mut self, messages: &Vec<String>) {
+        self.messages.extend_from_slice(messages);
+        if self.messages.len() > MAX_MESSAGE_LEN {
+            self.messages.drain(..self.messages.len() - MAX_MESSAGE_LEN);
+        }
     }
 }
 
@@ -100,6 +105,8 @@ impl Simulator {
     }
 
     fn show_messages(&self, ui: &mut egui::Ui) {
+        ui.label(format!("message: {}", self.ui_states.messages.len()));
+
         let text_style = TextStyle::Body;
         let row_height = ui.text_style_height(&text_style);
         ScrollArea::vertical()
