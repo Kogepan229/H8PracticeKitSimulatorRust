@@ -2,14 +2,15 @@ use crate::emulator;
 
 use super::Simulator;
 use eframe::egui::{self, ScrollArea, TextStyle, Vec2};
+use egui_extras::Column;
 use rfd::AsyncFileDialog;
 use std::sync::{Arc, Mutex};
 
 const MAX_MESSAGE_LEN: usize = 5000;
 
 pub struct SimulatorUiStates {
-    elf_path: Arc<Mutex<String>>,
-    elf_args: String,
+    pub elf_path: Arc<Mutex<String>>,
+    pub elf_args: String,
     messages: Vec<String>,
 }
 
@@ -27,6 +28,10 @@ impl SimulatorUiStates {
         if self.messages.len() > MAX_MESSAGE_LEN {
             self.messages.drain(..self.messages.len() - MAX_MESSAGE_LEN);
         }
+    }
+
+    pub fn clear_messages(&mut self) {
+        self.messages.clear();
     }
 }
 
@@ -75,17 +80,7 @@ impl Simulator {
 
         if self.emulator.is_none() {
             if ui.button("execute").clicked() {
-                self.ui_states.messages.clear();
-
-                let (tx, rx) = std::sync::mpsc::channel();
-                self.emulator_exec_rx = Some(rx);
-                let _elf_path = self.ui_states.elf_path.clone().lock().unwrap().clone();
-                let _elf_args = self.ui_states.elf_args.clone();
-                let _ctx = ctx.clone();
-                tokio::spawn(async move {
-                    let emu = emulator::Emulator::execute(_elf_path, _elf_args, _ctx).await;
-                    tx.send(emu).unwrap();
-                });
+                self.execute_emulator(ctx);
             }
         } else {
             if ui.button("stop").clicked() {
@@ -98,6 +93,10 @@ impl Simulator {
         } else {
             ui.label("Emulator is None.");
         }
+
+        ui.separator();
+
+        self.show_registers(ui);
 
         ui.separator();
 
@@ -123,5 +122,33 @@ impl Simulator {
                     }
                 },
             );
+    }
+
+    fn show_registers(&self, ui: &mut egui::Ui) {
+        ui.push_id("show_registers", |ui| {
+            egui_extras::TableBuilder::new(ui)
+                .column(Column::auto())
+                .column(Column::remainder())
+                .header(20.0, |mut header| {
+                    header.col(|ui| {
+                        ui.strong("Address");
+                    });
+                    header.col(|ui| {
+                        ui.strong("Value");
+                    });
+                })
+                .body(|mut body| {
+                    for (addr, value) in &self.io_ports {
+                        body.row(16.0, |mut row| {
+                            row.col(|ui| {
+                                ui.label(format!("{:x}", addr));
+                            });
+                            row.col(|ui| {
+                                ui.label(format!("{:x}", value));
+                            });
+                        });
+                    }
+                });
+        });
     }
 }
