@@ -63,7 +63,7 @@ impl Simulator {
 
         let (tx, rx) = std::sync::mpsc::channel();
         self.emulator_exec_rx = Some(rx);
-        let _elf_path = self.ui_states.elf_path.clone().lock().unwrap().clone();
+        let _elf_path = self.ui_states.elf_path.lock().unwrap().clone();
         let _elf_args = self.ui_states.elf_args.clone();
         let _ctx = ctx.clone();
         tokio::spawn(async move {
