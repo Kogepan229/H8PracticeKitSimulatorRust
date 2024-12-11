@@ -3,7 +3,10 @@ use std::{
     process::Stdio,
     sync::mpsc::{channel, Receiver},
 };
-use tokio::net::{tcp::OwnedWriteHalf, TcpStream};
+use tokio::net::{
+    tcp::{OwnedReadHalf, OwnedWriteHalf},
+    TcpStream,
+};
 
 pub static EMULATOR_PATH: &str = "./emulator/koge29_h8-3069f_emulator";
 
@@ -28,7 +31,7 @@ pub fn check_version() -> Option<String> {
 pub struct Emulator {
     pub process: tokio::process::Child,
     message_rx: Receiver<String>,
-    pub socket_writer: OwnedWriteHalf,
+    message_tx: tokio::sync::mpsc::Sender<String>,
 }
 
 impl Emulator {
@@ -40,7 +43,7 @@ impl Emulator {
         let arg = "-a=".to_string() + &elf_args;
         let process = tokio::process::Command::new(EMULATOR_PATH)
             .kill_on_drop(true)
-            .args(["--elf", &elf_path, "-r", "-s", arg.as_str()])
+            .args(["--elf", &elf_path, "-w", "-s", arg.as_str()])
             .stdout(Stdio::piped())
             .spawn()
             .expect("Failed to start emulator.");
@@ -62,7 +65,42 @@ impl Emulator {
         }
 
         let (socket_reader, socket_writer) = stream.into_split();
+        let message_rx = Emulator::spawn_receive_worker(socket_reader, ctx);
+        let message_tx = Emulator::spawn_send_worker(socket_writer);
 
+        Ok(Emulator {
+            process,
+            message_rx,
+            message_tx,
+        })
+    }
+
+    fn spawn_send_worker(socket_writer: OwnedWriteHalf) -> tokio::sync::mpsc::Sender<String> {
+        let (message_tx, mut message_rx) = tokio::sync::mpsc::channel(32);
+        tokio::spawn(async move {
+            while let Some(message) = message_rx.recv().await {
+                let _msg: String = message + "\n";
+                let str_bytes = _msg.as_bytes();
+                let mut written_bytes = 0;
+                loop {
+                    socket_writer.writable().await.unwrap();
+                    match socket_writer.try_write(str_bytes) {
+                        Ok(n) => {
+                            written_bytes += n;
+                        }
+                        Err(_) => {}
+                    }
+                    if written_bytes == str_bytes.len() {
+                        break;
+                    }
+                }
+            }
+        });
+
+        message_tx
+    }
+
+    fn spawn_receive_worker(socket_reader: OwnedReadHalf, ctx: egui::Context) -> Receiver<String> {
         let (message_tx, message_rx) = channel();
         tokio::spawn(async move {
             let mut message: Vec<u8> = Vec::new();
@@ -108,15 +146,18 @@ impl Emulator {
                 }
             }
         });
-
-        Ok(Emulator {
-            process,
-            message_rx,
-            socket_writer,
-        })
+        message_rx
     }
 
     pub fn pop_messages(&self) -> Vec<String> {
         Vec::from_iter(self.message_rx.try_iter())
+    }
+
+    pub fn send_message<T: Into<String>>(&self, message: T) {
+        let tx = self.message_tx.clone();
+        let _message = message.into();
+        tokio::spawn(async move {
+            tx.send(_message).await.unwrap();
+        });
     }
 }
