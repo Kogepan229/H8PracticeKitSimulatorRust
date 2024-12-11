@@ -1,11 +1,11 @@
 use eframe::egui;
-use std::{
-    process::Stdio,
-    sync::mpsc::{channel, Receiver},
-};
-use tokio::net::{
-    tcp::{OwnedReadHalf, OwnedWriteHalf},
-    TcpStream,
+use std::process::Stdio;
+use tokio::{
+    net::{
+        tcp::{OwnedReadHalf, OwnedWriteHalf},
+        TcpStream,
+    },
+    sync::mpsc::{channel, Receiver, Sender},
 };
 
 pub static EMULATOR_PATH: &str = "./emulator/koge29_h8-3069f_emulator";
@@ -31,7 +31,7 @@ pub fn check_version() -> Option<String> {
 pub struct Emulator {
     pub process: tokio::process::Child,
     message_rx: Receiver<String>,
-    message_tx: tokio::sync::mpsc::Sender<String>,
+    message_tx: Sender<String>,
 }
 
 impl Emulator {
@@ -75,8 +75,8 @@ impl Emulator {
         })
     }
 
-    fn spawn_send_worker(socket_writer: OwnedWriteHalf) -> tokio::sync::mpsc::Sender<String> {
-        let (message_tx, mut message_rx) = tokio::sync::mpsc::channel(32);
+    fn spawn_send_worker(socket_writer: OwnedWriteHalf) -> Sender<String> {
+        let (message_tx, mut message_rx) = channel(32);
         tokio::spawn(async move {
             while let Some(message) = message_rx.recv().await {
                 let _msg: String = message + "\n";
@@ -101,7 +101,7 @@ impl Emulator {
     }
 
     fn spawn_receive_worker(socket_reader: OwnedReadHalf, ctx: egui::Context) -> Receiver<String> {
-        let (message_tx, message_rx) = channel();
+        let (message_tx, message_rx) = channel(64);
         tokio::spawn(async move {
             let mut message: Vec<u8> = Vec::new();
             loop {
@@ -123,6 +123,7 @@ impl Emulator {
                                             .trim()
                                             .to_string(),
                                     )
+                                    .await
                                     .unwrap();
                                 message.clear();
                             } else {
@@ -149,8 +150,16 @@ impl Emulator {
         message_rx
     }
 
-    pub fn pop_messages(&self) -> Vec<String> {
-        Vec::from_iter(self.message_rx.try_iter())
+    pub fn pop_messages(&mut self) -> Vec<String> {
+        let mut messages = Vec::new();
+        loop {
+            if let Ok(message) = self.message_rx.try_recv() {
+                messages.push(message);
+            } else {
+                break;
+            }
+        }
+        messages
     }
 
     pub fn send_message<T: Into<String>>(&self, message: T) {

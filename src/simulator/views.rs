@@ -82,7 +82,7 @@ impl Simulator {
             }
         } else {
             if ui.button("stop").clicked() {
-                self.emulator = None;
+                self.stop_emulator();
             }
         }
 

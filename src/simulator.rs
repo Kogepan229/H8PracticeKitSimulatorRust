@@ -47,7 +47,7 @@ impl Simulator {
             }
         }
 
-        if let Some(emulator) = &self.emulator {
+        if let Some(emulator) = self.emulator.as_mut() {
             let messages = emulator.pop_messages();
             self.ui_states.push_messages(&messages);
 
@@ -70,6 +70,12 @@ impl Simulator {
             let emu = emulator::Emulator::execute(_elf_path, _elf_args, _ctx).await;
             tx.send(emu).unwrap();
         });
+    }
+
+    fn stop_emulator(&self) {
+        if let Some(emulator) = &self.emulator {
+            emulator.send_message("cmd:stop");
+        };
     }
 
     fn init_io_ports(&mut self) {
