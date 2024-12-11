@@ -7,6 +7,7 @@ use views::SimulatorUiStates;
 use crate::emulator::{self, Emulator};
 
 mod parse_messages;
+mod registers;
 mod views;
 
 pub struct Simulator {
@@ -75,11 +76,11 @@ impl Simulator {
         self.io_ports.clear();
 
         // Switch
-        self.io_ports.insert(0xfee004, 0); // P5DDR
-        self.io_ports.insert(0xffffd4, 0); // P5DR
+        self.io_ports.insert(registers::P5DDR, 0); // P5DDR
+        self.io_ports.insert(registers::P5DR, 0); // P5DR
 
         // LED
-        self.io_ports.insert(0xfee00a, 0); // PBDDR
-        self.io_ports.insert(0xffffda, 0); // PBDR
+        self.io_ports.insert(registers::PBDDR, 0); // PBDDR
+        self.io_ports.insert(registers::PBDR, 0); // PBDR
     }
 }

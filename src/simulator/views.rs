@@ -1,6 +1,4 @@
-use crate::emulator;
-
-use super::Simulator;
+use super::{registers, Simulator};
 use eframe::egui::{self, ScrollArea, TextStyle, Vec2};
 use egui_extras::Column;
 use rfd::AsyncFileDialog;
@@ -67,7 +65,7 @@ impl Simulator {
 
         ui.add_space(4.0);
 
-        ui.label("Args");
+        ui.strong("Args");
         ui.with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui| {
             ui.label("prog.elf");
             ui.add_sized(
@@ -96,11 +94,35 @@ impl Simulator {
 
         ui.separator();
 
+        self.show_modules(ui);
+
+        ui.separator();
+
         self.show_registers(ui);
 
         ui.separator();
 
         self.show_messages(ui);
+    }
+
+    fn show_modules(&self, ui: &mut egui::Ui) {
+        ui.add_enabled_ui(self.emulator.is_some(), |ui| {
+            let mut led = String::new();
+            if let Some(p5ddr) = self.io_ports.get(&registers::PBDDR) {
+                if let Some(p5dr) = self.io_ports.get(&registers::PBDR) {
+                    let pattern = p5ddr & (!p5dr);
+                    for i in 0..=7 {
+                        if (pattern >> (7 - i)) & 1 == 0 {
+                            led += "x";
+                        } else {
+                            led += "o";
+                        }
+                    }
+                }
+            }
+            ui.strong("LED");
+            ui.label(led);
+        });
     }
 
     fn show_messages(&self, ui: &mut egui::Ui) {
@@ -138,7 +160,10 @@ impl Simulator {
                     });
                 })
                 .body(|mut body| {
-                    for (addr, value) in &self.io_ports {
+                    let mut io_ports: Vec<(&u32, &u8)> = self.io_ports.iter().collect();
+                    io_ports.sort_by(|a, b| a.0.cmp(&b.0));
+
+                    for (addr, value) in io_ports {
                         body.row(16.0, |mut row| {
                             row.col(|ui| {
                                 ui.label(format!("{:x}", addr));
