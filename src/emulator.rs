@@ -65,18 +65,33 @@ impl Emulator {
 
         let (message_tx, message_rx) = channel();
         tokio::spawn(async move {
+            let mut message: Vec<u8> = Vec::new();
             loop {
-                let mut msg = vec![0; 1024];
+                let mut received = vec![0; 128];
                 socket_reader.readable().await.unwrap();
-                match socket_reader.try_read(&mut msg) {
+                match socket_reader.try_read(&mut received) {
                     Ok(n) => {
                         if n == 0 {
                             break;
                         }
-                        msg.truncate(n);
-                        message_tx
-                            .send(String::from_utf8(msg.clone()).unwrap().trim().to_string())
-                            .unwrap();
+                        received.truncate(n);
+
+                        for ch in received {
+                            if ch == b'\n' {
+                                message_tx
+                                    .send(
+                                        String::from_utf8(message.clone())
+                                            .unwrap()
+                                            .trim()
+                                            .to_string(),
+                                    )
+                                    .unwrap();
+                                message.clear();
+                            } else {
+                                message.push(ch);
+                            }
+                        }
+
                         ctx.request_repaint();
                         // println!(
                         //     "r: {}",
