@@ -1520,7 +1520,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "h8pks_rs"
+name = "h8pks"
 version = "0.1.0"
 dependencies = [
  "eframe",
