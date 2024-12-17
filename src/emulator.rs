@@ -44,7 +44,6 @@ impl Emulator {
         let process = tokio::process::Command::new(EMULATOR_PATH)
             .kill_on_drop(true)
             .args(["--elf", &elf_path, "-w", "-s", arg.as_str()])
-            .stdout(Stdio::piped())
             .spawn()
             .expect("Failed to start emulator.");
 
