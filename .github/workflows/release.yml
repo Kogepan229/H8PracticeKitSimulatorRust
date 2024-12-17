@@ -68,8 +68,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install musl tools
-        run: sudo apt install -qq -y musl-tools --no-install-recommends
+      - name: Install dependencies
+        run: sudo apt install -qq -y musl-tools libssl-dev --no-install-recommends
 
       - name: Set rust-toolchain
         uses: dtolnay/rust-toolchain@stable
