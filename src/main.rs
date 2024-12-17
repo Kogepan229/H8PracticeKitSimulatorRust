@@ -3,14 +3,24 @@
 use crate::simulator::Simulator;
 use eframe::egui;
 use std::env::{self};
+use update::UpdateStatusType;
 
 mod emulator;
 mod simulator;
+mod update;
+mod utils;
 
 #[tokio::main]
 async fn main() -> Result<(), eframe::Error> {
     env::set_var("RUST_LOG", "info");
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
+
+    tokio::spawn(async {
+        update::get_latest_info()
+            .await
+            .inspect_err(|e| eprintln!("{}", e))
+            .unwrap();
+    });
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
@@ -37,6 +47,7 @@ async fn main() -> Result<(), eframe::Error> {
 
 struct MyApp {
     emulator_version: Option<String>,
+    update_status: UpdateStatusType,
     simulator: Simulator,
 }
 
@@ -44,6 +55,7 @@ impl Default for MyApp {
     fn default() -> Self {
         Self {
             emulator_version: None,
+            update_status: UpdateStatusType::UNCHECKED,
             simulator: Simulator::new(),
         }
     }
