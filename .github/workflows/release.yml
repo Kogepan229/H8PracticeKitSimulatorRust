@@ -56,40 +56,6 @@ jobs:
           path: ./${{env.ARTIFACT_NAME}}
           if-no-files-found: error
 
-  build-linux-musl:
-    needs: check-version
-    if: ${{needs.check-version.outputs.is_new_version}}
-    runs-on: ubuntu-latest
-    env:
-      ARTIFACT_NAME: h8pks-x86_64-unknown-linux-musl-${{needs.check-version.outputs.current_version}}.zip
-    outputs:
-      artifact_name: ${{env.ARTIFACT_NAME}}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: sudo apt install -qq -y musl-tools libssl-dev --no-install-recommends
-
-      - name: Set rust-toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-unknown-linux-musl
-
-      - name: Build
-        run: cargo build --release --target=x86_64-unknown-linux-musl
-
-      - name: Package
-        run: |
-          zip --junk-paths ${{env.ARTIFACT_NAME}} target/x86_64-unknown-linux-musl/release/h8pks
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{env.ARTIFACT_NAME}}
-          path: ./${{env.ARTIFACT_NAME}}
-          if-no-files-found: error
-
   build-linux-gnu:
     needs: check-version
     if: ${{needs.check-version.outputs.is_new_version}}
@@ -123,7 +89,7 @@ jobs:
 
   release:
     runs-on: ubuntu-22.04
-    needs: [check-version, build-windows, build-linux-musl, build-linux-gnu]
+    needs: [check-version, build-windows, build-linux-gnu]
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -146,6 +112,5 @@ jobs:
           body: ${{ steps.create_tag.outputs.changelog }}
           artifacts:
             "./artifacts/${{needs.build-windows.outputs.artifact_name}}/${{needs.build-windows.outputs.artifact_name}},
-            ./artifacts/${{needs.build-linux-musl.outputs.artifact_name}}/${{needs.build-linux-musl.outputs.artifact_name}},
             ./artifacts/${{needs.build-linux-gnu.outputs.artifact_name}}/${{needs.build-linux-gnu.outputs.artifact_name}}"
           makeLatest: "latest"
