@@ -3,7 +3,7 @@
 use crate::simulator::Simulator;
 use eframe::egui;
 use std::env::{self};
-use update::{UpdateStatusType, Updater};
+use update::Updater;
 
 mod emulator;
 mod simulator;
@@ -55,7 +55,7 @@ impl Default for MyApp {
 }
 
 impl eframe::App for MyApp {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             self.simulator.ui(ui, ctx);
             self.updater.update(ui, ctx);
