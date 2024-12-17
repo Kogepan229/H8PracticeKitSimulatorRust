@@ -1,5 +1,6 @@
+use anyhow::Result;
 use eframe::egui;
-use std::process::Stdio;
+use std::path::PathBuf;
 use tokio::{
     net::{
         tcp::{OwnedReadHalf, OwnedWriteHalf},
@@ -8,10 +9,35 @@ use tokio::{
     sync::mpsc::{channel, Receiver, Sender},
 };
 
-pub static EMULATOR_PATH: &str = "./emulator/koge29_h8-3069f_emulator";
+pub const EMULATOR_FILE_NAME: &str = "koge29_h8-3069f_emulator";
+
+pub fn get_emulator_dir_path() -> Result<PathBuf> {
+    let mut path = std::env::current_exe()?;
+    path.pop();
+    path.push("emulator");
+    return Ok(path);
+}
+
+pub async fn create_emulator_dir() -> Result<()> {
+    let path = get_emulator_dir_path()?;
+    if !path.exists() {
+        tokio::fs::create_dir(path).await?;
+    }
+    return Ok(());
+}
+
+pub fn get_emulator_path() -> Result<PathBuf> {
+    let mut path = get_emulator_dir_path()?;
+    path.push(EMULATOR_FILE_NAME);
+    if cfg!(windows) {
+        path.set_extension("exe");
+    }
+    Ok(path)
+}
 
 pub fn check_version() -> Option<String> {
-    let output = std::process::Command::new(EMULATOR_PATH)
+    let emulator_path = get_emulator_path().unwrap();
+    let output = std::process::Command::new(emulator_path)
         .arg("--version")
         .output();
     if let Ok(o) = output {
@@ -40,11 +66,11 @@ impl Emulator {
         elf_args: String,
         ctx: egui::Context,
     ) -> Result<Emulator, String> {
+        let emulator_path = get_emulator_path().unwrap();
         let arg = "-a=".to_string() + &elf_args;
-        let process = tokio::process::Command::new(EMULATOR_PATH)
+        let process = tokio::process::Command::new(emulator_path)
             .kill_on_drop(true)
             .args(["--elf", &elf_path, "-w", "-s", arg.as_str()])
-            .stdout(Stdio::piped())
             .spawn()
             .expect("Failed to start emulator.");
 

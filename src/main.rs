@@ -3,9 +3,12 @@
 use crate::simulator::Simulator;
 use eframe::egui;
 use std::env::{self};
+use update::{UpdateStatusType, Updater};
 
 mod emulator;
 mod simulator;
+mod update;
+mod utils;
 
 #[tokio::main]
 async fn main() -> Result<(), eframe::Error> {
@@ -22,8 +25,7 @@ async fn main() -> Result<(), eframe::Error> {
         "H8 Practice Kit Simulator",
         options,
         Box::new(|_cc| {
-            let mut app = Box::<MyApp>::default();
-            app.emulator_version = emulator::check_version();
+            let app = Box::<MyApp>::default();
             if let Some(emulator_version) = &app.emulator_version {
                 log::info!("Emulator version: {}", emulator_version);
             } else {
@@ -37,13 +39,16 @@ async fn main() -> Result<(), eframe::Error> {
 
 struct MyApp {
     emulator_version: Option<String>,
+    updater: Updater,
     simulator: Simulator,
 }
 
 impl Default for MyApp {
     fn default() -> Self {
+        let emulator_version = emulator::check_version();
         Self {
-            emulator_version: None,
+            emulator_version: emulator_version.clone(),
+            updater: Updater::new(emulator_version),
             simulator: Simulator::new(),
         }
     }
@@ -53,6 +58,7 @@ impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             self.simulator.ui(ui, ctx);
+            self.updater.update(ui, ctx);
         });
     }
 }
