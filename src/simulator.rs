@@ -2,10 +2,12 @@ use std::sync::mpsc::Receiver;
 use std::{collections::HashMap, time};
 
 use eframe::egui;
+use message_window::MessageWindow;
 use views::SimulatorUiStates;
 
 use crate::emulator::{self, Emulator};
 
+mod message_window;
 mod parse_messages;
 mod registers;
 mod views;
@@ -14,6 +16,7 @@ pub struct Simulator {
     emulator: Option<Emulator>,
     emulator_exec_rx: Option<Receiver<Result<Emulator, String>>>,
     ui_states: SimulatorUiStates,
+    message_window: MessageWindow,
     io_ports: HashMap<u32, u8>,
     prev_timing: time::Instant,
 }
@@ -24,6 +27,7 @@ impl Simulator {
             emulator: None,
             emulator_exec_rx: None,
             ui_states: SimulatorUiStates::new(),
+            message_window: MessageWindow::new(),
             io_ports: HashMap::new(),
             prev_timing: time::Instant::now(),
         }
@@ -51,7 +55,7 @@ impl Simulator {
 
         if let Some(emulator) = self.emulator.as_mut() {
             let messages = emulator.pop_messages();
-            self.ui_states.push_messages(&messages);
+            self.message_window.push_messages(&messages);
 
             for message in messages {
                 self.parse_message(message);
@@ -61,7 +65,7 @@ impl Simulator {
 
     fn execute_emulator(&mut self, ctx: &egui::Context) {
         self.init_io_ports();
-        self.ui_states.clear_messages();
+        self.message_window.clear_messages();
 
         let (tx, rx) = std::sync::mpsc::channel();
         self.emulator_exec_rx = Some(rx);
