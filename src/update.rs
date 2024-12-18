@@ -180,16 +180,12 @@ impl Updater {
                 }
             }
             UpdateStatusType::DOWNLOADED => {
-                let version = if let Some(current_version) = &self.current_version {
-                    current_version.clone()
+                let version = if let Some(v) = emulator::check_version() {
+                    v
                 } else {
-                    if let Some(v) = emulator::check_version() {
-                        v
-                    } else {
-                        self.update_status = UpdateStatusType::COMPLETED;
-                        log::error!("Could not check emulator version.");
-                        return;
-                    }
+                    self.update_status = UpdateStatusType::COMPLETED;
+                    log::error!("Could not check emulator version.");
+                    return;
                 };
                 Updater::ui(ctx, |ctx, _class| {
                     egui::CentralPanel::default().show(ctx, |ui| {
