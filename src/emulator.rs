@@ -154,7 +154,6 @@ impl Emulator {
                                     .to_string()
                                     .replace("\\n", "\n")
                                     .replace("\\\\", "\\");
-                                println!("sim: {}", message_string);
                                 message_tx.send(message_string).await.unwrap();
                                 message.clear();
                             } else {
