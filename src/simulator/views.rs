@@ -11,6 +11,7 @@ pub struct SimulatorUiStates {
     pub elf_args: String,
     messages: Vec<String>,
     pub speed: f32,
+    is_opened_message_window: bool,
 }
 
 impl SimulatorUiStates {
@@ -20,6 +21,7 @@ impl SimulatorUiStates {
             elf_args: String::new(),
             messages: Vec::new(),
             speed: 0f32,
+            is_opened_message_window: false,
         }
     }
 
@@ -78,15 +80,28 @@ impl Simulator {
 
         ui.add_space(4.0);
 
-        if self.emulator.is_none() {
-            if ui.button("execute").clicked() {
-                self.execute_emulator(ctx);
+        ui.horizontal_wrapped(|ui| {
+            if self.emulator.is_none() {
+                if ui.button("execute").clicked() {
+                    self.execute_emulator(ctx);
+                }
+            } else {
+                if ui.button("stop").clicked() {
+                    self.stop_emulator();
+                }
             }
-        } else {
-            if ui.button("stop").clicked() {
-                self.stop_emulator();
-            }
-        }
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
+                let text = if self.ui_states.is_opened_message_window {
+                    "Close message window"
+                } else {
+                    "Open message window"
+                };
+                if ui.button(text).clicked() {
+                    self.ui_states.is_opened_message_window =
+                        !self.ui_states.is_opened_message_window
+                }
+            })
+        });
 
         if self.emulator.is_some() {
             ui.label("Emulator is available.");
@@ -105,7 +120,9 @@ impl Simulator {
 
         ui.separator();
 
-        self.show_messages(ui);
+        if self.ui_states.is_opened_message_window {
+            self.show_message_window(ui, ctx);
+        }
     }
 
     fn show_modules(&self, ui: &mut egui::Ui) {
@@ -128,25 +145,40 @@ impl Simulator {
         });
     }
 
-    fn show_messages(&self, ui: &mut egui::Ui) {
-        ui.label(format!("message: {}", self.ui_states.messages.len()));
+    fn show_message_window(&mut self, _ui: &mut egui::Ui, ctx: &egui::Context) {
+        ctx.show_viewport_immediate(
+            egui::ViewportId::from_hash_of("message_window"),
+            egui::ViewportBuilder::default()
+                .with_title("Emulator Messages")
+                .with_inner_size([400.0, 480.0]),
+            |ctx, _class| {
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    ui.label(format!("message: {}", self.ui_states.messages.len()));
+                    ui.separator();
 
-        let text_style = TextStyle::Body;
-        let row_height = ui.text_style_height(&text_style);
-        ScrollArea::vertical()
-            .stick_to_bottom(true)
-            .auto_shrink(false)
-            .show_rows(
-                ui,
-                row_height,
-                self.ui_states.messages.len(),
-                |ui, row_range| {
-                    for row in row_range {
-                        let text = &self.ui_states.messages[row];
-                        ui.label(text);
+                    let text_style = TextStyle::Body;
+                    let row_height = ui.text_style_height(&text_style);
+                    ScrollArea::vertical()
+                        .stick_to_bottom(true)
+                        .auto_shrink(false)
+                        .show_rows(
+                            ui,
+                            row_height,
+                            self.ui_states.messages.len(),
+                            |ui, row_range| {
+                                for row in row_range {
+                                    let text = &self.ui_states.messages[row];
+                                    ui.label(text);
+                                }
+                            },
+                        );
+
+                    if ctx.input(|i| i.viewport().close_requested()) {
+                        self.ui_states.is_opened_message_window = false;
                     }
-                },
-            );
+                });
+            },
+        )
     }
 
     fn show_registers(&self, ui: &mut egui::Ui) {
