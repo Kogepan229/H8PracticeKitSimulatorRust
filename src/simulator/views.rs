@@ -10,6 +10,7 @@ pub struct SimulatorUiStates {
     pub elf_path: Arc<Mutex<String>>,
     pub elf_args: String,
     messages: Vec<String>,
+    pub speed: f32,
 }
 
 impl SimulatorUiStates {
@@ -18,6 +19,7 @@ impl SimulatorUiStates {
             elf_path: Arc::new(Mutex::new(String::new())),
             elf_args: String::new(),
             messages: Vec::new(),
+            speed: 0f32,
         }
     }
 
@@ -91,6 +93,7 @@ impl Simulator {
         } else {
             ui.label("Emulator is None.");
         }
+        ui.label(format!("Speed: x{}", self.ui_states.speed));
 
         ui.separator();
 

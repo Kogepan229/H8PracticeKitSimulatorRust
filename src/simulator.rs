@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use std::sync::mpsc::Receiver;
+use std::{collections::HashMap, time};
 
 use eframe::egui;
 use views::SimulatorUiStates;
@@ -15,6 +15,7 @@ pub struct Simulator {
     emulator_exec_rx: Option<Receiver<Result<Emulator, String>>>,
     ui_states: SimulatorUiStates,
     io_ports: HashMap<u32, u8>,
+    prev_timing: time::Instant,
 }
 
 impl Simulator {
@@ -24,6 +25,7 @@ impl Simulator {
             emulator_exec_rx: None,
             ui_states: SimulatorUiStates::new(),
             io_ports: HashMap::new(),
+            prev_timing: time::Instant::now(),
         }
     }
 

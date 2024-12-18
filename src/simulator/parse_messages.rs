@@ -1,3 +1,5 @@
+use std::time;
+
 use super::Simulator;
 
 impl Simulator {
@@ -11,7 +13,13 @@ impl Simulator {
                         emulator.send_message(format!("u8:{:x}:{:x}", addr, value));
                     }
                     emulator.send_message("cmd:start");
+                    self.prev_timing = time::Instant::now();
                 }
+            }
+            "1sec" => {
+                let duration = self.prev_timing.elapsed();
+                self.prev_timing = time::Instant::now();
+                self.ui_states.speed = 1f32 / duration.as_secs_f32();
             }
             _ => (),
         }
