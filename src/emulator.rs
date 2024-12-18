@@ -142,15 +142,12 @@ impl Emulator {
 
                         for ch in received {
                             if ch == b'\n' {
-                                message_tx
-                                    .send(
-                                        String::from_utf8(message.clone())
-                                            .unwrap()
-                                            .trim()
-                                            .to_string(),
-                                    )
-                                    .await
-                                    .unwrap();
+                                let message_string = String::from_utf8(message.clone())
+                                    .unwrap()
+                                    .to_string()
+                                    .replace("\\n", "\n")
+                                    .replace("\\\\", "\\");
+                                message_tx.send(message_string).await.unwrap();
                                 message.clear();
                             } else {
                                 message.push(ch);
@@ -158,10 +155,6 @@ impl Emulator {
                         }
 
                         ctx.request_repaint();
-                        // println!(
-                        //     "r: {}",
-                        //     String::from_utf8(msg.clone()).unwrap().trim().to_string()
-                        // )
                     }
                     Err(ref e) if e.kind() == tokio::io::ErrorKind::WouldBlock => {
                         continue;
