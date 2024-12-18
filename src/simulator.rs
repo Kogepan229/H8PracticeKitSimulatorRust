@@ -83,7 +83,7 @@ impl Simulator {
 
         // Switch
         self.io_ports.insert(registers::P5DDR, 0); // P5DDR
-        self.io_ports.insert(registers::P5DR, 0); // P5DR
+        self.io_ports.insert(registers::P5DR, 0xff); // P5DR
 
         // LED
         self.io_ports.insert(registers::PBDDR, 0); // PBDDR

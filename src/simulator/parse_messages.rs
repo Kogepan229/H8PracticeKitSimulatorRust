@@ -7,6 +7,9 @@ impl Simulator {
             "u8" => self.parse_u8(list),
             "ready" => {
                 if let Some(emulator) = &self.emulator {
+                    for (addr, value) in self.io_ports.iter() {
+                        emulator.send_message(format!("u8:{:x}:{:x}", addr, value));
+                    }
                     emulator.send_message("cmd:start");
                 }
             }
