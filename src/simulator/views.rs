@@ -1,5 +1,5 @@
 use super::{registers, Simulator};
-use eframe::egui::{self, ScrollArea, TextStyle, Vec2};
+use eframe::egui::{self, Vec2};
 use egui_extras::Column;
 use rfd::AsyncFileDialog;
 use std::sync::{Arc, Mutex};
@@ -8,7 +8,6 @@ pub struct SimulatorUiStates {
     pub elf_path: Arc<Mutex<String>>,
     pub elf_args: String,
     pub speed: f32,
-    pub stdout: String,
 }
 
 impl SimulatorUiStates {
@@ -17,7 +16,6 @@ impl SimulatorUiStates {
             elf_path: Arc::new(Mutex::new(String::new())),
             elf_args: String::new(),
             speed: 0f32,
-            stdout: String::new(),
         }
     }
 }
@@ -97,7 +95,7 @@ impl Simulator {
 
         ui.separator();
 
-        self.show_terminal(ui);
+        self.terminal.show(ui);
 
         self.message_window.show_window(ctx);
     }
@@ -151,17 +149,5 @@ impl Simulator {
                     }
                 });
         });
-    }
-
-    fn show_terminal(&self, ui: &mut egui::Ui) {
-        ui.strong("Terminal (stdout)");
-        let text_style = TextStyle::Body;
-        let row_height = ui.text_style_height(&text_style);
-        ScrollArea::vertical()
-            .stick_to_bottom(true)
-            .auto_shrink(false)
-            .show_rows(ui, row_height, 1, |ui, _row_range| {
-                ui.label(&self.ui_states.stdout);
-            });
     }
 }

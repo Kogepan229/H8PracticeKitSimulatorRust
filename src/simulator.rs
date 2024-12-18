@@ -3,6 +3,7 @@ use std::{collections::HashMap, time};
 
 use eframe::egui;
 use message_window::MessageWindow;
+use terminal::Terminal;
 use views::SimulatorUiStates;
 
 use crate::emulator::{self, Emulator};
@@ -10,6 +11,7 @@ use crate::emulator::{self, Emulator};
 mod message_window;
 mod parse_messages;
 mod registers;
+mod terminal;
 mod views;
 
 pub struct Simulator {
@@ -17,6 +19,7 @@ pub struct Simulator {
     emulator_exec_rx: Option<Receiver<Result<Emulator, String>>>,
     ui_states: SimulatorUiStates,
     message_window: MessageWindow,
+    terminal: Terminal,
     io_ports: HashMap<u32, u8>,
     prev_timing: time::Instant,
 }
@@ -28,6 +31,7 @@ impl Simulator {
             emulator_exec_rx: None,
             ui_states: SimulatorUiStates::new(),
             message_window: MessageWindow::new(),
+            terminal: Terminal::new(),
             io_ports: HashMap::new(),
             prev_timing: time::Instant::now(),
         }
@@ -66,6 +70,7 @@ impl Simulator {
     fn execute_emulator(&mut self, ctx: &egui::Context) {
         self.init_io_ports();
         self.message_window.clear_messages();
+        self.terminal.clear();
 
         let (tx, rx) = std::sync::mpsc::channel();
         self.emulator_exec_rx = Some(rx);

@@ -5,7 +5,7 @@ use super::Simulator;
 impl Simulator {
     pub fn parse_message(&mut self, message: String) {
         if message.starts_with("stdout:") {
-            self.ui_states.stdout += &message.replacen("stdout:", "", 1);
+            self.terminal.push(&message.replacen("stdout:", "", 1));
             return;
         }
 
