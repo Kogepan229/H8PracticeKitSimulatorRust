@@ -12,6 +12,7 @@ pub struct SimulatorUiStates {
     messages: Vec<String>,
     pub speed: f32,
     is_opened_message_window: bool,
+    pub stdout: String,
 }
 
 impl SimulatorUiStates {
@@ -22,6 +23,7 @@ impl SimulatorUiStates {
             messages: Vec::new(),
             speed: 0f32,
             is_opened_message_window: false,
+            stdout: String::new(),
         }
     }
 
@@ -120,6 +122,8 @@ impl Simulator {
 
         ui.separator();
 
+        self.show_terminal(ui);
+
         if self.ui_states.is_opened_message_window {
             self.show_message_window(ui, ctx);
         }
@@ -210,5 +214,17 @@ impl Simulator {
                     }
                 });
         });
+    }
+
+    fn show_terminal(&self, ui: &mut egui::Ui) {
+        ui.strong("Terminal (stdout)");
+        let text_style = TextStyle::Body;
+        let row_height = ui.text_style_height(&text_style);
+        ScrollArea::vertical()
+            .stick_to_bottom(true)
+            .auto_shrink(false)
+            .show_rows(ui, row_height, 1, |ui, _row_range| {
+                ui.label(&self.ui_states.stdout);
+            });
     }
 }
