@@ -7,6 +7,7 @@ use tokio::{
         TcpStream,
     },
     sync::mpsc::{channel, Receiver, Sender},
+    task::JoinHandle,
 };
 
 pub const EMULATOR_FILE_NAME: &str = "koge29_h8-3069f_emulator";
@@ -56,6 +57,7 @@ pub fn check_version() -> Option<String> {
 
 pub struct Emulator {
     pub process: tokio::process::Child,
+    pub socket_receiver_handle: JoinHandle<()>,
     message_rx: Receiver<String>,
     message_tx: Sender<String>,
 }
@@ -91,11 +93,13 @@ impl Emulator {
         }
 
         let (socket_reader, socket_writer) = stream.into_split();
-        let message_rx = Emulator::spawn_receive_worker(socket_reader, ctx);
+        let (message_rx, socket_receiver_handle) =
+            Emulator::spawn_receive_worker(socket_reader, ctx);
         let message_tx = Emulator::spawn_send_worker(socket_writer);
 
         Ok(Emulator {
             process,
+            socket_receiver_handle,
             message_rx,
             message_tx,
         })
@@ -126,9 +130,12 @@ impl Emulator {
         message_tx
     }
 
-    fn spawn_receive_worker(socket_reader: OwnedReadHalf, ctx: egui::Context) -> Receiver<String> {
+    fn spawn_receive_worker(
+        socket_reader: OwnedReadHalf,
+        ctx: egui::Context,
+    ) -> (Receiver<String>, JoinHandle<()>) {
         let (message_tx, message_rx) = channel(64);
-        tokio::spawn(async move {
+        let handle = tokio::spawn(async move {
             let mut message: Vec<u8> = Vec::new();
             loop {
                 let mut received = vec![0; 128];
@@ -147,6 +154,7 @@ impl Emulator {
                                     .to_string()
                                     .replace("\\n", "\n")
                                     .replace("\\\\", "\\");
+                                println!("sim: {}", message_string);
                                 message_tx.send(message_string).await.unwrap();
                                 message.clear();
                             } else {
@@ -166,7 +174,7 @@ impl Emulator {
                 }
             }
         });
-        message_rx
+        (message_rx, handle)
     }
 
     pub fn pop_messages(&mut self) -> Vec<String> {

@@ -48,23 +48,14 @@ impl Simulator {
             self.emulator_exec_rx = None
         }
 
-        if self.emulator.is_some() {
-            if let Ok(r) = self.emulator.as_mut().unwrap().process.try_wait() {
-                if let Some(status) = r {
-                    println!("{}", status.to_string());
-                    self.emulator = None;
-                }
+        if let Some(emulator) = &self.emulator {
+            if emulator.socket_receiver_handle.is_finished() {
+                self.pop_emulator_messages();
+                self.emulator = None;
             }
         }
 
-        if let Some(emulator) = self.emulator.as_mut() {
-            let messages = emulator.pop_messages();
-            self.message_window.push_messages(&messages);
-
-            for message in messages {
-                self.parse_message(message);
-            }
-        };
+        self.pop_emulator_messages();
     }
 
     fn execute_emulator(&mut self, ctx: &egui::Context) {
@@ -86,6 +77,17 @@ impl Simulator {
     fn stop_emulator(&self) {
         if let Some(emulator) = &self.emulator {
             emulator.send_message("cmd:stop");
+        };
+    }
+
+    fn pop_emulator_messages(&mut self) {
+        if let Some(emulator) = self.emulator.as_mut() {
+            let messages = emulator.pop_messages();
+            self.message_window.push_messages(&messages);
+
+            for message in messages {
+                self.parse_message(message);
+            }
         };
     }
 
