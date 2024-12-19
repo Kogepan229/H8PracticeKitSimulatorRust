@@ -27,7 +27,7 @@ jobs:
 
   build-windows:
     needs: check-version
-    if: ${{needs.check-version.outputs.is_new_version}}
+    if: ${{needs.check-version.outputs.is_new_version}} == 'true'
     runs-on: windows-latest
     env:
       ARTIFACT_NAME: h8pks-x86_64-pc-windows-msvc-${{needs.check-version.outputs.current_version}}.zip
@@ -58,7 +58,7 @@ jobs:
 
   build-linux-gnu:
     needs: check-version
-    if: ${{needs.check-version.outputs.is_new_version}}
+    if: ${{needs.check-version.outputs.is_new_version}} == 'true'
     runs-on: ubuntu-latest
     env:
       ARTIFACT_NAME: h8pks-x86_64-unknown-linux-gnu-${{needs.check-version.outputs.current_version}}.zip
