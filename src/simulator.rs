@@ -1,12 +1,10 @@
-use std::sync::mpsc::Receiver;
-use std::{collections::HashMap, time};
-
+use crate::emulator::{self, Emulator};
 use eframe::egui;
 use message_window::MessageWindow;
+use std::{collections::HashMap, time};
 use terminal::Terminal;
+use tokio::sync::mpsc::{self, Receiver};
 use views::SimulatorUiStates;
-
-use crate::emulator::{self, Emulator};
 
 mod message_window;
 mod parse_messages;
@@ -38,14 +36,14 @@ impl Simulator {
     }
 
     fn update(&mut self) {
-        if let Some(rx) = &self.emulator_exec_rx {
-            if let Ok(result) = rx.recv() {
+        if let Some(rx) = self.emulator_exec_rx.as_mut() {
+            if let Ok(result) = rx.try_recv() {
                 match result {
                     Ok(emulator) => self.emulator = Some(emulator),
                     Err(e) => println!("{}", e),
                 }
+                self.emulator_exec_rx = None
             }
-            self.emulator_exec_rx = None
         }
 
         if let Some(emulator) = &self.emulator {
@@ -63,14 +61,16 @@ impl Simulator {
         self.message_window.clear_messages();
         self.terminal.clear();
 
-        let (tx, rx) = std::sync::mpsc::channel();
+        let (tx, rx) = mpsc::channel(1);
         self.emulator_exec_rx = Some(rx);
         let _elf_path = self.ui_states.elf_path.lock().unwrap().clone();
         let _elf_args = self.ui_states.elf_args.clone();
         let _ctx = ctx.clone();
         tokio::spawn(async move {
             let emu = emulator::Emulator::execute(_elf_path, _elf_args, _ctx).await;
-            tx.send(emu).unwrap();
+            if let Err(e) = tx.send(emu).await {
+                eprintln!("{}", e)
+            }
         });
     }
 

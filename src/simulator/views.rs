@@ -65,9 +65,11 @@ impl Simulator {
 
         ui.horizontal_wrapped(|ui| {
             if self.emulator.is_none() {
-                if ui.button("execute").clicked() {
-                    self.execute_emulator(ctx);
-                }
+                ui.add_enabled_ui(self.emulator_exec_rx.is_none(), |ui| {
+                    if ui.button("execute").clicked() {
+                        self.execute_emulator(ctx);
+                    }
+                });
             } else {
                 if ui.button("stop").clicked() {
                     self.stop_emulator();
