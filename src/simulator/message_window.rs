@@ -16,7 +16,8 @@ impl MessageWindow {
     }
 
     pub fn push_messages(&mut self, messages: &Vec<String>) {
-        self.messages.extend_from_slice(messages);
+        self.messages
+            .extend(messages.iter().map(|s| s.replace('\n', "\\n")));
         if self.messages.len() > MAX_MESSAGE_LEN {
             self.messages.drain(..self.messages.len() - MAX_MESSAGE_LEN);
         }
