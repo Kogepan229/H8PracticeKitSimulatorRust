@@ -81,9 +81,9 @@ impl Simulator {
         });
 
         if self.emulator.is_some() {
-            ui.label("Emulator is available.");
+            ui.label("Emulator is running.");
         } else {
-            ui.label("Emulator is None.");
+            ui.label("Emulator is stopped.");
         }
         ui.label(format!("Speed: x{}", self.ui_states.speed));
 
