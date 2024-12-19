@@ -4,13 +4,8 @@ version = "0.2.5"
 edition = "2021"
 license = "MIT"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-eframe = { version = "0.30.0", features = [
-    "default",
-    "__screenshot", # __screenshot is so we can dump a screenshot using EFRAME_SCREENSHOT_TO
-] }
+eframe = { version = "0.30.0", features = ["default"] }
 egui_extras = { version = "0.30.0" }
 log = { version = "0.4.22" }
 env_logger = { version = "0.11", default-features = false, features = [
