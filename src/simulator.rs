@@ -1,7 +1,7 @@
 use crate::emulator::{self, Emulator};
 use eframe::egui;
 use message_window::MessageWindow;
-use std::{collections::HashMap, time};
+use std::time;
 use terminal::Terminal;
 use tokio::sync::mpsc::{self, Receiver};
 use views::SimulatorUiStates;
@@ -12,13 +12,15 @@ mod registers;
 mod terminal;
 mod views;
 
+pub const IO_PORT_SIZE: usize = 11;
+
 pub struct Simulator {
     emulator: Option<Emulator>,
     emulator_exec_rx: Option<Receiver<Result<Emulator, String>>>,
     ui_states: SimulatorUiStates,
     message_window: MessageWindow,
     terminal: Terminal,
-    io_ports: HashMap<u32, u8>,
+    io_port: [u8; IO_PORT_SIZE],
     prev_timing: time::Instant,
 }
 
@@ -30,7 +32,7 @@ impl Simulator {
             ui_states: SimulatorUiStates::new(),
             message_window: MessageWindow::new(),
             terminal: Terminal::new(),
-            io_ports: HashMap::new(),
+            io_port: [0; IO_PORT_SIZE],
             prev_timing: time::Instant::now(),
         }
     }
@@ -57,7 +59,7 @@ impl Simulator {
     }
 
     fn execute_emulator(&mut self, ctx: &egui::Context) {
-        self.init_io_ports();
+        self.init_io_port();
         self.message_window.clear_messages();
         self.terminal.clear();
 
@@ -91,15 +93,21 @@ impl Simulator {
         };
     }
 
-    fn init_io_ports(&mut self) {
-        self.io_ports.clear();
+    fn read_io_port(&self, port: u8) -> u8 {
+        self.io_port[port as usize - 1]
+    }
+
+    fn write_io_port(&mut self, port: u8, value: u8) {
+        self.io_port[port as usize - 1] = value;
+    }
+
+    fn init_io_port(&mut self) {
+        self.io_port = [0; IO_PORT_SIZE];
 
         // Switch
-        self.io_ports.insert(registers::P5DDR, 0); // P5DDR
-        self.io_ports.insert(registers::P5DR, 0xff); // P5DR
+        self.write_io_port(0x5, 0xff);
 
         // LED
-        self.io_ports.insert(registers::PBDDR, 0); // PBDDR
-        self.io_ports.insert(registers::PBDR, 0); // PBDR
+        self.write_io_port(0xb, 0xff);
     }
 }

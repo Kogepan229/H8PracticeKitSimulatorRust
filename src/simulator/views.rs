@@ -1,4 +1,4 @@
-use super::{registers, Simulator};
+use super::Simulator;
 use eframe::egui::{self, Vec2};
 use egui_extras::Column;
 use rfd::AsyncFileDialog;
@@ -105,16 +105,12 @@ impl Simulator {
     fn show_modules(&self, ui: &mut egui::Ui) {
         ui.add_enabled_ui(self.emulator.is_some(), |ui| {
             let mut led = String::new();
-            if let Some(p5ddr) = self.io_ports.get(&registers::PBDDR) {
-                if let Some(p5dr) = self.io_ports.get(&registers::PBDR) {
-                    let pattern = p5ddr & (!p5dr);
-                    for i in 0..=7 {
-                        if (pattern >> (7 - i)) & 1 == 0 {
-                            led += "x";
-                        } else {
-                            led += "o";
-                        }
-                    }
+            let pattern = self.read_io_port(0xb);
+            for i in 0..=7 {
+                if (pattern >> (7 - i)) & 1 == 0 {
+                    led += "o";
+                } else {
+                    led += "x";
                 }
             }
             ui.strong("LED");
@@ -136,13 +132,13 @@ impl Simulator {
                     });
                 })
                 .body(|mut body| {
-                    let mut io_ports: Vec<(&u32, &u8)> = self.io_ports.iter().collect();
-                    io_ports.sort_by(|a, b| a.0.cmp(&b.0));
-
-                    for (addr, value) in io_ports {
+                    for (i, value) in self.io_port.iter().enumerate() {
+                        if i + 1 != 0x5 && i + 1 != 0xb {
+                            continue;
+                        }
                         body.row(16.0, |mut row| {
                             row.col(|ui| {
-                                ui.label(format!("{:x}", addr));
+                                ui.label(format!("Port{:X}", i + 1));
                             });
                             row.col(|ui| {
                                 ui.label(format!("{:x}", value));
