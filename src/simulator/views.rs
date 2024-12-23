@@ -2,12 +2,16 @@ use super::Simulator;
 use eframe::egui::{self, Vec2};
 use egui_extras::Column;
 use rfd::AsyncFileDialog;
-use std::sync::{Arc, Mutex};
+use std::{
+    cell::RefCell,
+    sync::{Arc, Mutex},
+};
 
 pub struct SimulatorUiStates {
     pub elf_path: Arc<Mutex<String>>,
     pub elf_args: String,
     pub speed: f32,
+    pub switch: RefCell<bool>,
 }
 
 impl SimulatorUiStates {
@@ -16,6 +20,7 @@ impl SimulatorUiStates {
             elf_path: Arc::new(Mutex::new(String::new())),
             elf_args: String::new(),
             speed: 0f32,
+            switch: RefCell::new(false),
         }
     }
 }
@@ -116,6 +121,16 @@ impl Simulator {
             ui.strong("LED");
             ui.label(led);
         });
+        ui.strong("Toggle Swtich");
+
+        egui::widgets::global_theme_preference_buttons(ui);
+        ui.with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui| {
+            ui.add(Self::toggle_switch(&mut self.ui_states.switch.borrow_mut()));
+            ui.add(Self::toggle_switch(&mut self.ui_states.switch.borrow_mut()));
+            ui.add(Self::toggle_switch(&mut self.ui_states.switch.borrow_mut()));
+            ui.add(Self::toggle_switch(&mut self.ui_states.switch.borrow_mut()));
+            ui.add(Self::toggle_switch(&mut self.ui_states.switch.borrow_mut()));
+        });
     }
 
     fn show_registers(&self, ui: &mut egui::Ui) {
@@ -147,5 +162,36 @@ impl Simulator {
                     }
                 });
         });
+    }
+
+    fn toggle_switch(on: &mut bool) -> impl egui::Widget + '_ {
+        move |ui: &mut egui::Ui| {
+            let desired_size = ui.spacing().interact_size.y * egui::vec2(1.0, 2.0);
+            let (rect, mut response) = ui.allocate_exact_size(desired_size, egui::Sense::click());
+            if response.clicked() {
+                *on = !*on;
+                response.mark_changed();
+            }
+            response.widget_info(|| {
+                egui::WidgetInfo::selected(egui::WidgetType::Checkbox, ui.is_enabled(), *on, "")
+            });
+
+            if ui.is_rect_visible(rect) {
+                let how_on = ui.ctx().animate_bool_responsive(response.id, *on);
+                let visuals = ui.style().interact_selectable(&response, false);
+                let rect = rect.expand(visuals.expansion);
+                let radius = 0.5 * rect.width();
+                ui.painter()
+                    .rect(rect, radius, visuals.bg_fill, visuals.bg_stroke);
+                let circle_y = egui::lerp((rect.top() + radius)..=(rect.bottom() - radius), how_on);
+                let center = egui::pos2(rect.center().x, circle_y);
+                let mut stroke = visuals.fg_stroke;
+                stroke.width = 1.0;
+                ui.painter()
+                    .circle(center, 0.75 * radius, visuals.bg_fill, stroke);
+            }
+
+            response
+        }
     }
 }
