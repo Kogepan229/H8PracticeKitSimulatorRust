@@ -11,7 +11,7 @@ pub struct SimulatorUiStates {
     pub elf_path: Arc<Mutex<String>>,
     pub elf_args: String,
     pub speed: f32,
-    pub switch: RefCell<bool>,
+    pub toggle_switches: RefCell<[bool; 5]>,
 }
 
 impl SimulatorUiStates {
@@ -20,7 +20,7 @@ impl SimulatorUiStates {
             elf_path: Arc::new(Mutex::new(String::new())),
             elf_args: String::new(),
             speed: 0f32,
-            switch: RefCell::new(false),
+            toggle_switches: RefCell::new([false; 5]),
         }
     }
 }
@@ -107,7 +107,7 @@ impl Simulator {
         self.message_window.show_window(ctx);
     }
 
-    fn show_modules(&self, ui: &mut egui::Ui) {
+    fn show_modules(&mut self, ui: &mut egui::Ui) {
         ui.add_enabled_ui(self.emulator.is_some(), |ui| {
             let mut led = String::new();
             let pattern = self.read_io_port(0xb);
@@ -121,16 +121,39 @@ impl Simulator {
             ui.strong("LED");
             ui.label(led);
         });
+
+        ui.add_space(4.0);
         ui.strong("Toggle Swtich");
 
-        egui::widgets::global_theme_preference_buttons(ui);
+        let prev_toggle_switches = self.ui_states.toggle_switches.borrow_mut().clone();
         ui.with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui| {
-            ui.add(Self::toggle_switch(&mut self.ui_states.switch.borrow_mut()));
-            ui.add(Self::toggle_switch(&mut self.ui_states.switch.borrow_mut()));
-            ui.add(Self::toggle_switch(&mut self.ui_states.switch.borrow_mut()));
-            ui.add(Self::toggle_switch(&mut self.ui_states.switch.borrow_mut()));
-            ui.add(Self::toggle_switch(&mut self.ui_states.switch.borrow_mut()));
+            for switch in self.ui_states.toggle_switches.borrow_mut().iter_mut() {
+                ui.add(Self::toggle_switch(switch));
+            }
         });
+        let mut is_changed = false;
+        for (i, switch) in self.ui_states.toggle_switches.borrow().iter().enumerate() {
+            if prev_toggle_switches[i] != *switch {
+                is_changed = true;
+                break;
+            }
+        }
+        if is_changed {
+            let switches = self.ui_states.toggle_switches.borrow();
+            if switches[0] {
+                self.io_port[4] |= 1 << 2
+            } else {
+                self.io_port[4] &= !(1 << 2)
+            }
+            if switches[1] {
+                self.io_port[4] |= 1 << 3
+            } else {
+                self.io_port[4] &= !(1 << 3)
+            }
+            if let Some(emulator) = self.emulator.as_mut() {
+                emulator.send_message(format!("ioport:{:x}:{:x}", 0x5, self.io_port[4]));
+            }
+        }
     }
 
     fn show_registers(&self, ui: &mut egui::Ui) {
@@ -177,7 +200,7 @@ impl Simulator {
             });
 
             if ui.is_rect_visible(rect) {
-                let how_on = ui.ctx().animate_bool_responsive(response.id, *on);
+                let how_on = ui.ctx().animate_bool_responsive(response.id, !*on);
                 let visuals = ui.style().interact_selectable(&response, false);
                 let rect = rect.expand(visuals.expansion);
                 let radius = 0.5 * rect.width();

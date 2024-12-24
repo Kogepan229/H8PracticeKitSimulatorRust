@@ -26,7 +26,7 @@ pub struct Simulator {
 
 impl Simulator {
     pub fn new() -> Self {
-        Simulator {
+        let mut simulator = Simulator {
             emulator: None,
             emulator_exec_rx: None,
             ui_states: SimulatorUiStates::new(),
@@ -34,7 +34,9 @@ impl Simulator {
             terminal: Terminal::new(),
             io_port: [0; IO_PORT_SIZE],
             prev_timing: time::Instant::now(),
-        }
+        };
+        simulator.init_io_port();
+        simulator
     }
 
     fn update(&mut self) {
@@ -102,11 +104,6 @@ impl Simulator {
     }
 
     fn init_io_port(&mut self) {
-        self.io_port = [0; IO_PORT_SIZE];
-
-        // Switch
-        self.write_io_port(0x5, 0xff);
-
         // LED
         self.write_io_port(0xb, 0xff);
     }
