@@ -12,12 +12,12 @@ env_logger = { version = "0.11", default-features = false, features = [
     "auto-color",
     "humantime",
 ] }
-tokio = { version = "1.42", features = ["full"] }
+tokio = { version = "1.43", features = ["full"] }
 tokio-util = { version = "0.7.13", features = ["full"] }
 tokio-stream = { version = "0.1.17" }
 rfd = { version = "0.15" }
-reqwest = { version = "0.12.9", features = ["json", "stream"] }
-serde = { version = "1.0.216", features = ["derive"] }
-serde_json = "1.0.133"
+reqwest = { version = "0.12.12", features = ["json", "stream"] }
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.135"
 anyhow = "1"
 zip = "2.2.2"
