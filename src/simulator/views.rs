@@ -1,5 +1,5 @@
 use super::Simulator;
-use eframe::egui::{self, Vec2};
+use eframe::egui::{self, Color32, Vec2};
 use egui_extras::Column;
 use rfd::AsyncFileDialog;
 use std::{
@@ -12,6 +12,7 @@ pub struct SimulatorUiStates {
     pub elf_args: String,
     pub speed: f32,
     pub toggle_switches: RefCell<[bool; 5]>,
+    pub push_switches: RefCell<[bool; 5]>,
 }
 
 impl SimulatorUiStates {
@@ -21,6 +22,7 @@ impl SimulatorUiStates {
             elf_args: String::new(),
             speed: 0f32,
             toggle_switches: RefCell::new([false; 5]),
+            push_switches: RefCell::new([false; 5]),
         }
     }
 }
@@ -154,6 +156,39 @@ impl Simulator {
                 emulator.send_message(format!("ioport:{:x}:{:x}", 0x5, self.io_port[4]));
             }
         }
+
+        ui.add_space(4.0);
+        ui.strong("Push Swtich");
+
+        let prev_push_switches = self.ui_states.push_switches.borrow_mut().clone();
+        ui.with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui| {
+            for switch in self.ui_states.push_switches.borrow_mut().iter_mut() {
+                ui.add(Self::push_switch(switch));
+            }
+        });
+        is_changed = false;
+        for (i, switch) in self.ui_states.push_switches.borrow().iter().enumerate() {
+            if prev_push_switches[i] != *switch {
+                is_changed = true;
+                break;
+            }
+        }
+        if is_changed {
+            let switches = self.ui_states.push_switches.borrow();
+            if switches[0] {
+                self.io_port[4] |= 1 << 0
+            } else {
+                self.io_port[4] &= !(1 << 0)
+            }
+            if switches[1] {
+                self.io_port[4] |= 1 << 1
+            } else {
+                self.io_port[4] &= !(1 << 1)
+            }
+            if let Some(emulator) = self.emulator.as_mut() {
+                emulator.send_message(format!("ioport:{:x}:{:x}", 0x5, self.io_port[4]));
+            }
+        }
     }
 
     fn show_registers(&self, ui: &mut egui::Ui) {
@@ -212,6 +247,39 @@ impl Simulator {
                 stroke.width = 1.0;
                 ui.painter()
                     .circle(center, 0.75 * radius, visuals.bg_fill, stroke);
+            }
+
+            response
+        }
+    }
+
+    fn push_switch(on: &mut bool) -> impl egui::Widget + '_ {
+        move |ui: &mut egui::Ui| {
+            let desired_size = ui.spacing().interact_size.y * egui::vec2(1.0, 1.0);
+            let (rect, mut response) = ui.allocate_exact_size(desired_size, egui::Sense::click());
+            if response.clicked() {
+                *on = !*on;
+                response.mark_changed();
+            }
+            response.widget_info(|| {
+                egui::WidgetInfo::selected(egui::WidgetType::Checkbox, ui.is_enabled(), *on, "")
+            });
+
+            if ui.is_rect_visible(rect) {
+                let visuals = ui.style().interact_selectable(&response, false);
+                let rect = rect.expand(visuals.expansion);
+                let radius = 0.5 * rect.width();
+                ui.painter()
+                    .rect(rect, radius, visuals.bg_fill, visuals.bg_stroke);
+                let center = egui::pos2(rect.center().x, rect.top() + radius);
+                let mut stroke = visuals.fg_stroke;
+                stroke.width = 1.0;
+                let color = if *on {
+                    Color32::from_gray(160)
+                } else {
+                    visuals.bg_fill
+                };
+                ui.painter().circle(center, 0.75 * radius, color, stroke);
             }
 
             response
