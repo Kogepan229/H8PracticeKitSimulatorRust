@@ -176,14 +176,14 @@ impl Simulator {
         if is_changed {
             let switches = self.ui_states.push_switches.borrow();
             if switches[0] {
-                self.io_port[4] |= 1 << 0
-            } else {
                 self.io_port[4] &= !(1 << 0)
+            } else {
+                self.io_port[4] |= 1 << 0
             }
             if switches[1] {
-                self.io_port[4] |= 1 << 1
-            } else {
                 self.io_port[4] &= !(1 << 1)
+            } else {
+                self.io_port[4] |= 1 << 1
             }
             if let Some(emulator) = self.emulator.as_mut() {
                 emulator.send_message(format!("ioport:{:x}:{:x}", 0x5, self.io_port[4]));

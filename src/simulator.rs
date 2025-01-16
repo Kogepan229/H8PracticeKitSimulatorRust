@@ -36,6 +36,7 @@ impl Simulator {
             prev_timing: time::Instant::now(),
         };
         simulator.init_io_port();
+        simulator.write_io_port(0x5, 0x3);
         simulator
     }
 
