@@ -167,6 +167,7 @@ impl Updater {
                     match rx.try_recv() {
                         Ok(_) => {
                             self.update_status = UpdateStatusType::DOWNLOADED;
+                            self.current_version = None;
                         }
                         Err(e) => match e {
                             tokio::sync::mpsc::error::TryRecvError::Empty => return,
@@ -180,17 +181,22 @@ impl Updater {
                 }
             }
             UpdateStatusType::DOWNLOADED => {
-                let version = if let Some(v) = emulator::check_version() {
-                    v
-                } else {
-                    self.update_status = UpdateStatusType::COMPLETED;
-                    log::error!("Could not check emulator version.");
-                    return;
-                };
+                if self.current_version.is_none() {
+                    self.current_version = if let Some(v) = emulator::check_version() {
+                        Some(v)
+                    } else {
+                        self.update_status = UpdateStatusType::COMPLETED;
+                        log::error!("Could not check emulator version.");
+                        return;
+                    };
+                }
                 Updater::ui(ctx, |ctx, _class| {
                     egui::CentralPanel::default().show(ctx, |ui| {
                         ui.label("Download completed!");
-                        ui.label(format!("Emulator version: {}", version));
+                        ui.label(format!(
+                            "Emulator version: {}",
+                            self.current_version.clone().unwrap()
+                        ));
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
                             if ui.button("Close").clicked() {
                                 self.update_status = UpdateStatusType::COMPLETED;
