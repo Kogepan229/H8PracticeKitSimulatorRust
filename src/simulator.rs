@@ -8,7 +8,6 @@ use views::SimulatorUiStates;
 
 mod message_window;
 mod parse_messages;
-mod registers;
 mod terminal;
 mod views;
 
@@ -51,8 +50,9 @@ impl Simulator {
             }
         }
 
-        if let Some(emulator) = &self.emulator {
-            if emulator.socket_receiver_handle.is_finished() {
+        if let Some(emulator) = self.emulator.as_mut() {
+            if emulator.socket_receiver_handle.is_finished() && emulator.process.try_wait().is_ok()
+            {
                 self.pop_emulator_messages();
                 self.emulator = None;
             }
