@@ -1,17 +1,17 @@
 use crate::emulator::{self, Emulator};
 use eframe::egui;
+use ioport::IoPort;
 use message_window::MessageWindow;
 use std::time;
 use terminal::Terminal;
 use tokio::sync::mpsc::{self, Receiver};
 use views::SimulatorUiStates;
 
+mod ioport;
 mod message_window;
 mod parse_messages;
 mod terminal;
 mod views;
-
-pub const IO_PORT_SIZE: usize = 11;
 
 pub struct Simulator {
     emulator: Option<Emulator>,
@@ -19,7 +19,7 @@ pub struct Simulator {
     ui_states: SimulatorUiStates,
     message_window: MessageWindow,
     terminal: Terminal,
-    io_port: [u8; IO_PORT_SIZE],
+    io_port: IoPort,
     prev_timing: time::Instant,
 }
 
@@ -31,11 +31,11 @@ impl Simulator {
             ui_states: SimulatorUiStates::new(),
             message_window: MessageWindow::new(),
             terminal: Terminal::new(),
-            io_port: [0; IO_PORT_SIZE],
+            io_port: IoPort::new(),
             prev_timing: time::Instant::now(),
         };
-        simulator.init_io_port();
-        simulator.write_io_port(0x5, 0x3);
+        simulator.io_port.init_led();
+        simulator.io_port.init_switches();
         simulator
     }
 
@@ -62,7 +62,7 @@ impl Simulator {
     }
 
     fn execute_emulator(&mut self, ctx: &egui::Context) {
-        self.init_io_port();
+        self.io_port.init_led();
         self.message_window.clear_messages();
         self.terminal.clear();
 
@@ -85,6 +85,15 @@ impl Simulator {
         };
     }
 
+    fn send_initial_ioport(&self, emulator: &Emulator) {
+        // Switch
+        emulator.send_message(format!(
+            "ioport:{:x}:{:x}",
+            0x5,
+            self.io_port.read(0x5).unwrap()
+        ));
+    }
+
     fn pop_emulator_messages(&mut self) {
         if let Some(emulator) = self.emulator.as_mut() {
             let messages = emulator.pop_messages();
@@ -94,18 +103,5 @@ impl Simulator {
                 self.parse_message(message);
             }
         };
-    }
-
-    fn read_io_port(&self, port: u8) -> u8 {
-        self.io_port[port as usize - 1]
-    }
-
-    fn write_io_port(&mut self, port: u8, value: u8) {
-        self.io_port[port as usize - 1] = value;
-    }
-
-    fn init_io_port(&mut self) {
-        // LED
-        self.write_io_port(0xb, 0xff);
     }
 }

@@ -14,8 +14,7 @@ impl Simulator {
             "ioport" => self.parse_ioport(list),
             "ready" => {
                 if let Some(emulator) = &self.emulator {
-                    // Switch
-                    emulator.send_message(format!("ioport:{:x}:{:x}", 0x5, self.read_io_port(0x5)));
+                    self.send_initial_ioport(emulator);
 
                     emulator.send_message("cmd:start");
                     self.prev_timing = time::Instant::now();
@@ -31,17 +30,18 @@ impl Simulator {
     }
 
     fn parse_ioport(&mut self, list: Vec<&str>) {
-        if list.len() != 3 {
+        if list.len() != 4 {
             return;
         }
-        let port_result = u8::from_str_radix(&list[1], 16);
-        let value_result = u8::from_str_radix(&list[2], 16);
-        if let Ok(port) = port_result {
-            if let Ok(value) = value_result {
-                match port {
-                    // 7SegLED | LED
-                    0x4 | 0xb => self.write_io_port(port, value),
-                    _ => (),
+
+        if let Ok(port) = u8::from_str_radix(&list[1], 16) {
+            if let Ok(value) = u8::from_str_radix(&list[2], 16) {
+                if let Ok(state) = list[3].parse::<usize>() {
+                    match port {
+                        // 7SegLED | LED
+                        0x4 | 0xb => self.io_port.write(port, value, state),
+                        _ => (),
+                    }
                 }
             }
         }

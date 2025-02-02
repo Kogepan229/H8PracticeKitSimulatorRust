@@ -127,7 +127,7 @@ impl Simulator {
             ui.with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui| {
                 ui.style_mut().spacing.item_spacing.x = 0f32;
 
-                let pattern = self.read_io_port(0xb);
+                let pattern = self.io_port.read(0xb).unwrap();
                 for i in 0..=7 {
                     ui.add(Self::single_led((pattern >> (7 - i)) & 1 == 0));
                 }
@@ -172,7 +172,7 @@ impl Simulator {
 
         let mut job = LayoutJob::default();
 
-        let port4 = self.read_io_port(4);
+        let port4 = self.io_port.read(4).unwrap();
         for i in 0..4 {
             let leading_space = if i == 0 { 0.0 } else { 4.0 };
             if (port4 >> i) & 1 == 1 {
@@ -208,17 +208,25 @@ impl Simulator {
         if is_changed {
             let switches = self.ui_states.toggle_switches.borrow();
             if switches[0] {
-                self.io_port[4] |= 1 << 2
+                self.io_port
+                    .write(5, self.io_port.read(5).unwrap() | (1 << 2), 0); // TODO
             } else {
-                self.io_port[4] &= !(1 << 2)
+                self.io_port
+                    .write(5, self.io_port.read(5).unwrap() & !(1 << 2), 0); // TODO
             }
             if switches[1] {
-                self.io_port[4] |= 1 << 3
+                self.io_port
+                    .write(5, self.io_port.read(5).unwrap() | (1 << 3), 0); // TODO
             } else {
-                self.io_port[4] &= !(1 << 3)
+                self.io_port
+                    .write(5, self.io_port.read(5).unwrap() & !(1 << 3), 0); // TODO
             }
             if let Some(emulator) = self.emulator.as_mut() {
-                emulator.send_message(format!("ioport:{:x}:{:x}", 0x5, self.io_port[4]));
+                emulator.send_message(format!(
+                    "ioport:{:x}:{:x}",
+                    0x5,
+                    self.io_port.read(5).unwrap()
+                ));
             }
         }
     }
@@ -242,17 +250,25 @@ impl Simulator {
         if is_changed {
             let switches = self.ui_states.push_switches.borrow();
             if switches[0] {
-                self.io_port[4] &= !(1 << 0)
+                self.io_port
+                    .write(5, self.io_port.read(5).unwrap() & !(1 << 0), 0); // TODO
             } else {
-                self.io_port[4] |= 1 << 0
+                self.io_port
+                    .write(5, self.io_port.read(5).unwrap() | (1 << 0), 0); // TODO
             }
             if switches[1] {
-                self.io_port[4] &= !(1 << 1)
+                self.io_port
+                    .write(5, self.io_port.read(5).unwrap() & !(1 << 1), 0); // TODO
             } else {
-                self.io_port[4] |= 1 << 1
+                self.io_port
+                    .write(5, self.io_port.read(5).unwrap() | (1 << 1), 0); // TODO
             }
             if let Some(emulator) = self.emulator.as_mut() {
-                emulator.send_message(format!("ioport:{:x}:{:x}", 0x5, self.io_port[4]));
+                emulator.send_message(format!(
+                    "ioport:{:x}:{:x}",
+                    0x5,
+                    self.io_port.read(5).unwrap()
+                ));
             }
         }
     }
@@ -271,19 +287,22 @@ impl Simulator {
                     });
                 })
                 .body(|mut body| {
-                    for (i, value) in self.io_port.iter().enumerate() {
-                        if i + 1 != 0x5 && i + 1 != 0xb {
-                            continue;
-                        }
-                        body.row(16.0, |mut row| {
-                            row.col(|ui| {
-                                ui.label(format!("Port{:X}", i + 1));
-                            });
-                            row.col(|ui| {
-                                ui.label(format!("{:x}", value));
-                            });
+                    body.row(16.0, |mut row| {
+                        row.col(|ui| {
+                            ui.label("Port5");
                         });
-                    }
+                        row.col(|ui| {
+                            ui.label(format!("{:x}", self.io_port.read(5).unwrap()));
+                        });
+                    });
+                    body.row(16.0, |mut row| {
+                        row.col(|ui| {
+                            ui.label("PortB");
+                        });
+                        row.col(|ui| {
+                            ui.label(format!("{:x}", self.io_port.read(0xb).unwrap()));
+                        });
+                    });
                 });
         });
     }
