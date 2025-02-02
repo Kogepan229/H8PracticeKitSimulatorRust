@@ -110,6 +110,16 @@ impl Simulator {
     }
 
     fn show_modules(&mut self, ui: &mut egui::Ui) {
+        ui.columns(2, |columns| {
+            self.show_led(&mut columns[0]);
+
+            self.show_toggle_switches(&mut columns[1]);
+            columns[1].add_space(4.0);
+            self.show_push_switches(&mut columns[1]);
+        });
+    }
+
+    fn show_led(&mut self, ui: &mut egui::Ui) {
         ui.add_enabled_ui(self.emulator.is_some(), |ui| {
             let mut led = String::new();
             let pattern = self.read_io_port(0xb);
@@ -123,8 +133,9 @@ impl Simulator {
             ui.strong("LED");
             ui.label(led);
         });
+    }
 
-        ui.add_space(4.0);
+    fn show_toggle_switches(&mut self, ui: &mut egui::Ui) {
         ui.strong("Toggle Swtich");
 
         let prev_toggle_switches = self.ui_states.toggle_switches.borrow_mut().clone();
@@ -156,8 +167,9 @@ impl Simulator {
                 emulator.send_message(format!("ioport:{:x}:{:x}", 0x5, self.io_port[4]));
             }
         }
+    }
 
-        ui.add_space(4.0);
+    fn show_push_switches(&mut self, ui: &mut egui::Ui) {
         ui.strong("Push Swtich");
 
         let prev_push_switches = self.ui_states.push_switches.borrow_mut().clone();
@@ -166,7 +178,7 @@ impl Simulator {
                 ui.add(Self::push_switch(switch));
             }
         });
-        is_changed = false;
+        let mut is_changed = false;
         for (i, switch) in self.ui_states.push_switches.borrow().iter().enumerate() {
             if prev_push_switches[i] != *switch {
                 is_changed = true;
