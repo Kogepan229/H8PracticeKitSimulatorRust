@@ -16,11 +16,13 @@ mod views;
 pub struct Simulator {
     emulator: Option<Emulator>,
     emulator_exec_rx: Option<Receiver<Result<Emulator, String>>>,
+    speed: f64,
     ui_states: SimulatorUiStates,
     message_window: MessageWindow,
     terminal: Terminal,
     io_port: IoPort,
-    prev_timing: time::Instant,
+    onesec_timing: time::Instant,
+    emulator_state: usize,
 }
 
 impl Simulator {
@@ -28,11 +30,13 @@ impl Simulator {
         let mut simulator = Simulator {
             emulator: None,
             emulator_exec_rx: None,
+            speed: 0f64,
             ui_states: SimulatorUiStates::new(),
             message_window: MessageWindow::new(),
             terminal: Terminal::new(),
             io_port: IoPort::new(),
-            prev_timing: time::Instant::now(),
+            onesec_timing: time::Instant::now(),
+            emulator_state: 0,
         };
         simulator.io_port.init_led();
         simulator.io_port.init_switches();
@@ -50,11 +54,13 @@ impl Simulator {
             }
         }
 
+        // Finished emulator
         if let Some(emulator) = self.emulator.as_mut() {
             if emulator.socket_receiver_handle.is_finished() && emulator.process.try_wait().is_ok()
             {
                 self.pop_emulator_messages();
                 self.emulator = None;
+                self.io_port.init_led();
             }
         }
 
@@ -62,6 +68,8 @@ impl Simulator {
     }
 
     fn execute_emulator(&mut self, ctx: &egui::Context) {
+        self.emulator_state = 0;
+        self.speed = 1.0f64;
         self.io_port.init_led();
         self.message_window.clear_messages();
         self.terminal.clear();
@@ -103,5 +111,10 @@ impl Simulator {
                 self.parse_message(message);
             }
         };
+    }
+
+    fn get_corrected_current_emulator_state(&self) -> usize {
+        let elapsed_from_1sec = self.onesec_timing.elapsed().as_secs_f64() * self.speed;
+        self.emulator_state + (elapsed_from_1sec * 20_000_000f64) as usize
     }
 }

@@ -10,7 +10,6 @@ use std::{
 pub struct SimulatorUiStates {
     pub elf_path: Arc<Mutex<String>>,
     pub elf_args: String,
-    pub speed: f32,
     pub toggle_switches: RefCell<[bool; 5]>,
     pub push_switches: RefCell<[bool; 5]>,
 }
@@ -20,7 +19,6 @@ impl SimulatorUiStates {
         SimulatorUiStates {
             elf_path: Arc::new(Mutex::new(String::new())),
             elf_args: String::new(),
-            speed: 0f32,
             toggle_switches: RefCell::new([false; 5]),
             push_switches: RefCell::new([false; 5]),
         }
@@ -92,7 +90,7 @@ impl Simulator {
         } else {
             ui.label("Emulator is stopped.");
         }
-        ui.label(format!("Speed: x{}", self.ui_states.speed));
+        ui.label(format!("Speed: x{:.6}", self.speed));
 
         ui.separator();
 
@@ -157,36 +155,47 @@ impl Simulator {
     fn show_digit_led(&mut self, ui: &mut egui::Ui) {
         use egui::text::LayoutJob;
 
-        ui.strong("7Seg LED");
+        ui.add_enabled_ui(self.emulator.is_some(), |ui| {
+            ui.strong("7Seg LED");
 
-        let red_text = TextFormat {
-            color: Color32::RED,
-            font_id: FontId::monospace(24.0),
-            ..Default::default()
-        };
-        let transparent_text = TextFormat {
-            color: Color32::TRANSPARENT,
-            font_id: FontId::monospace(24.0),
-            ..Default::default()
-        };
+            let red_text = TextFormat {
+                color: Color32::RED,
+                font_id: FontId::monospace(24.0),
+                ..Default::default()
+            };
+            let transparent_text = TextFormat {
+                color: Color32::TRANSPARENT,
+                font_id: FontId::monospace(24.0),
+                ..Default::default()
+            };
 
-        let mut job = LayoutJob::default();
+            self.io_port.filter_port4(
+                self.get_corrected_current_emulator_state()
+                    .saturating_sub(200_000 * 3),
+            );
+            let port4 = self.io_port.read_port4();
 
-        let port4 = self.io_port.read(4).unwrap();
-        for i in 0..4 {
-            let leading_space = if i == 0 { 0.0 } else { 4.0 };
-            if (port4 >> i) & 1 == 1 {
-                job.append(
-                    (port4 >> 4).to_string().as_str(),
-                    leading_space,
-                    red_text.clone(),
-                );
-            } else {
-                job.append("0", leading_space, transparent_text.clone());
+            let mut diaplay_num: [Option<u8>; 4] = [None; 4];
+            for item in port4 {
+                for i in 0..4 {
+                    if (item.0 >> i) & 1 == 1 {
+                        diaplay_num[i] = Some(item.0 >> 4);
+                    }
+                }
             }
-        }
 
-        ui.label(job);
+            let mut job = LayoutJob::default();
+            for (i, num) in diaplay_num.iter().enumerate() {
+                let leading_space = if i == 0 { 0.0 } else { 4.0 };
+                if let Some(num) = num {
+                    job.append(num.to_string().as_str(), leading_space, red_text.clone());
+                } else {
+                    job.append("0", leading_space, transparent_text.clone());
+                }
+            }
+
+            ui.label(job);
+        });
     }
 
     fn show_toggle_switches(&mut self, ui: &mut egui::Ui) {

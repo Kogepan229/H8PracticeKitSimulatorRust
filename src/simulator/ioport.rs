@@ -1,5 +1,5 @@
 pub struct IoPort {
-    port4: u8,
+    port4: Vec<(u8, usize)>,
     port5: u8,
     portb: u8,
 }
@@ -7,7 +7,7 @@ pub struct IoPort {
 impl IoPort {
     pub fn new() -> Self {
         Self {
-            port4: 0,
+            port4: Vec::new(),
             port5: 0,
             portb: 0,
         }
@@ -15,7 +15,6 @@ impl IoPort {
 
     pub fn read(&self, port: u8) -> Option<u8> {
         return match port {
-            4 => Some(self.port4),
             5 => Some(self.port5),
             0xb => Some(self.portb),
             _ => None,
@@ -24,11 +23,33 @@ impl IoPort {
 
     pub fn write(&mut self, port: u8, value: u8, emulator_state: usize) {
         return match port {
-            4 => self.port4 = value,
+            4 => self.port4.push((value, emulator_state)),
             5 => self.port5 = value,
             0xb => self.portb = value,
             _ => (),
         };
+    }
+
+    pub fn filter_port4(&mut self, threshold_state: usize) {
+        let latest = match self.port4.last() {
+            Some(latest) => *latest,
+            None => return,
+        };
+
+        self.port4 = self
+            .port4
+            .clone()
+            .into_iter()
+            .filter(|port| port.1 >= threshold_state)
+            .collect();
+
+        if self.port4.is_empty() {
+            self.port4.push(latest);
+        }
+    }
+
+    pub fn read_port4(&self) -> &Vec<(u8, usize)> {
+        return &self.port4;
     }
 
     pub fn init_led(&mut self) {
@@ -36,7 +57,7 @@ impl IoPort {
         self.write(0xb, 0xff, 0);
 
         // 7Seg LED
-        self.write(4, 0, 0);
+        self.port4.clear();
     }
 
     pub fn init_switches(&mut self) {

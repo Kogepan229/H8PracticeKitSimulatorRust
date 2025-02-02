@@ -17,13 +17,21 @@ impl Simulator {
                     self.send_initial_ioport(emulator);
 
                     emulator.send_message("cmd:start");
-                    self.prev_timing = time::Instant::now();
+                    self.onesec_timing = time::Instant::now();
                 }
             }
             "1sec" => {
-                let duration = self.prev_timing.elapsed();
-                self.prev_timing = time::Instant::now();
-                self.ui_states.speed = 1f32 / duration.as_secs_f32();
+                if list.len() != 2 {
+                    return;
+                }
+                if let Ok(state) = list[1].parse::<usize>() {
+                    self.emulator_state = state;
+                } else {
+                    return;
+                }
+                let duration = self.onesec_timing.elapsed();
+                self.onesec_timing = time::Instant::now();
+                self.speed = 1f64 / duration.as_secs_f64();
             }
             _ => (),
         }
