@@ -1,5 +1,5 @@
 use super::Simulator;
-use eframe::egui::{self, Color32, Vec2};
+use eframe::egui::{self, Color32, FontId, TextFormat, Vec2};
 use egui_extras::Column;
 use rfd::AsyncFileDialog;
 use std::{
@@ -112,6 +112,8 @@ impl Simulator {
     fn show_modules(&mut self, ui: &mut egui::Ui) {
         ui.columns(2, |columns| {
             self.show_led(&mut columns[0]);
+            columns[0].add_space(4.0);
+            self.show_digit_led(&mut columns[0]);
 
             self.show_toggle_switches(&mut columns[1]);
             columns[1].add_space(4.0);
@@ -150,6 +152,41 @@ impl Simulator {
 
             response
         }
+    }
+
+    fn show_digit_led(&mut self, ui: &mut egui::Ui) {
+        use egui::text::LayoutJob;
+
+        ui.strong("7Seg LED");
+
+        let red_text = TextFormat {
+            color: Color32::RED,
+            font_id: FontId::monospace(20.0),
+            ..Default::default()
+        };
+        let transparent_text = TextFormat {
+            color: Color32::TRANSPARENT,
+            font_id: FontId::monospace(20.0),
+            ..Default::default()
+        };
+
+        let mut job = LayoutJob::default();
+
+        let port4 = self.read_io_port(4);
+        for i in 0..4 {
+            let leading_space = if i == 0 { 0.0 } else { 4.0 };
+            if (port4 >> i) & 1 == 1 {
+                job.append(
+                    (port4 >> 4).to_string().as_str(),
+                    leading_space,
+                    red_text.clone(),
+                );
+            } else {
+                job.append("0", leading_space, transparent_text.clone());
+            }
+        }
+
+        ui.label(job);
     }
 
     fn show_toggle_switches(&mut self, ui: &mut egui::Ui) {
