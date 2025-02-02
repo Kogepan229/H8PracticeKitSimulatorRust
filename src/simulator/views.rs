@@ -121,18 +121,35 @@ impl Simulator {
 
     fn show_led(&mut self, ui: &mut egui::Ui) {
         ui.add_enabled_ui(self.emulator.is_some(), |ui| {
-            let mut led = String::new();
-            let pattern = self.read_io_port(0xb);
-            for i in 0..=7 {
-                if (pattern >> (7 - i)) & 1 == 0 {
-                    led += "o";
-                } else {
-                    led += "x";
-                }
-            }
             ui.strong("LED");
-            ui.label(led);
+            ui.with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui| {
+                ui.style_mut().spacing.item_spacing.x = 0f32;
+
+                let pattern = self.read_io_port(0xb);
+                for i in 0..=7 {
+                    ui.add(Self::show_single_led((pattern >> (7 - i)) & 1 == 0));
+                }
+            });
         });
+    }
+
+    fn show_single_led(on: bool) -> impl egui::Widget {
+        move |ui: &mut egui::Ui| {
+            let desired_size = ui.spacing().interact_size.y * egui::vec2(1.0, 1.0);
+            let (rect, response) = ui.allocate_exact_size(desired_size, egui::Sense::hover());
+
+            if ui.is_rect_visible(rect) {
+                let visuals = ui.style().noninteractive();
+                let rect = rect.expand(visuals.expansion);
+                let radius = 0.5 * rect.width();
+                let center = egui::pos2(rect.center().x, rect.top() + radius);
+                let color = if on { Color32::RED } else { visuals.bg_fill };
+                ui.painter()
+                    .circle(center, 0.75 * radius, color, visuals.fg_stroke);
+            }
+
+            response
+        }
     }
 
     fn show_toggle_switches(&mut self, ui: &mut egui::Ui) {
