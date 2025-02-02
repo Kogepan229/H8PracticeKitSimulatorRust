@@ -127,13 +127,13 @@ impl Simulator {
 
                 let pattern = self.read_io_port(0xb);
                 for i in 0..=7 {
-                    ui.add(Self::show_single_led((pattern >> (7 - i)) & 1 == 0));
+                    ui.add(Self::single_led((pattern >> (7 - i)) & 1 == 0));
                 }
             });
         });
     }
 
-    fn show_single_led(on: bool) -> impl egui::Widget {
+    fn single_led(on: bool) -> impl egui::Widget {
         move |ui: &mut egui::Ui| {
             let desired_size = ui.spacing().interact_size.y * egui::vec2(1.0, 1.0);
             let (rect, response) = ui.allocate_exact_size(desired_size, egui::Sense::hover());
