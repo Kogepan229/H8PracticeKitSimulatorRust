@@ -137,7 +137,7 @@ impl Simulator {
 
     fn single_led(on: bool) -> impl egui::Widget {
         move |ui: &mut egui::Ui| {
-            let desired_size = ui.spacing().interact_size.y * egui::vec2(1.0, 1.0);
+            let desired_size = ui.spacing().interact_size.y * egui::vec2(1.2, 1.2);
             let (rect, response) = ui.allocate_exact_size(desired_size, egui::Sense::hover());
 
             if ui.is_rect_visible(rect) {
@@ -161,12 +161,12 @@ impl Simulator {
 
         let red_text = TextFormat {
             color: Color32::RED,
-            font_id: FontId::monospace(20.0),
+            font_id: FontId::monospace(24.0),
             ..Default::default()
         };
         let transparent_text = TextFormat {
             color: Color32::TRANSPARENT,
-            font_id: FontId::monospace(20.0),
+            font_id: FontId::monospace(24.0),
             ..Default::default()
         };
 
