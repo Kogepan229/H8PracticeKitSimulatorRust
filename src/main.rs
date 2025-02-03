@@ -17,7 +17,9 @@ async fn main() -> Result<(), eframe::Error> {
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_inner_size([640.0, 480.0])
+            // .with_inner_size([640.0, 480.0])
+            .with_inner_size([960.0, 720.0])
+            // .with_inner_size([1280.0, 720.0])
             .with_min_inner_size([320.0, 240.0]),
         ..Default::default()
     };
@@ -57,6 +59,7 @@ impl Default for MyApp {
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
+            ctx.set_pixels_per_point(1.8);
             self.simulator.ui(ui, ctx);
             self.updater.update(ui, ctx);
         });
