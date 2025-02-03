@@ -17,10 +17,10 @@ impl Simulator {
                     self.send_initial_ioport(emulator);
 
                     emulator.send_message("cmd:start");
-                    self.onesec_timing = time::Instant::now();
+                    self.sync_timing = time::Instant::now();
                 }
             }
-            "1sec" => {
+            "sync" => {
                 if list.len() != 2 {
                     return;
                 }
@@ -29,9 +29,10 @@ impl Simulator {
                 } else {
                     return;
                 }
-                let duration = self.onesec_timing.elapsed();
-                self.onesec_timing = time::Instant::now();
-                self.speed = 1f64 / duration.as_secs_f64();
+                let duration = self.sync_timing.elapsed();
+                self.sync_timing = time::Instant::now();
+                self.speed = 0.1f64 / duration.as_secs_f64();
+                self.ui_states.speed_buf.push(self.speed);
             }
             _ => (),
         }

@@ -21,7 +21,7 @@ pub struct Simulator {
     message_window: MessageWindow,
     terminal: Terminal,
     io_port: IoPort,
-    onesec_timing: time::Instant,
+    sync_timing: time::Instant,
     emulator_state: usize,
 }
 
@@ -35,7 +35,7 @@ impl Simulator {
             message_window: MessageWindow::new(),
             terminal: Terminal::new(),
             io_port: IoPort::new(),
-            onesec_timing: time::Instant::now(),
+            sync_timing: time::Instant::now(),
             emulator_state: 0,
         };
         simulator.io_port.init_led();
@@ -73,6 +73,7 @@ impl Simulator {
         self.io_port.init_led();
         self.message_window.clear_messages();
         self.terminal.clear();
+        self.ui_states.speed = 0f64;
 
         let (tx, rx) = mpsc::channel(1);
         self.emulator_exec_rx = Some(rx);
@@ -114,7 +115,7 @@ impl Simulator {
     }
 
     fn get_corrected_current_emulator_state(&self) -> usize {
-        let elapsed_from_1sec = self.onesec_timing.elapsed().as_secs_f64() * self.speed;
+        let elapsed_from_1sec = self.sync_timing.elapsed().as_secs_f64() * self.speed;
         self.emulator_state + (elapsed_from_1sec * 20_000_000f64) as usize
     }
 }
