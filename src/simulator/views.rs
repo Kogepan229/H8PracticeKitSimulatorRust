@@ -12,6 +12,8 @@ pub struct SimulatorUiStates {
     pub elf_args: String,
     pub toggle_switches: RefCell<[bool; 5]>,
     pub push_switches: RefCell<[bool; 5]>,
+    pub speed: f64,
+    pub speed_buf: Vec<f64>,
 }
 
 impl SimulatorUiStates {
@@ -21,6 +23,8 @@ impl SimulatorUiStates {
             elf_args: String::new(),
             toggle_switches: RefCell::new([false; 5]),
             push_switches: RefCell::new([false; 5]),
+            speed: 0f64,
+            speed_buf: Vec::new(),
         }
     }
 }
@@ -90,7 +94,18 @@ impl Simulator {
         } else {
             ui.label("Emulator is stopped.");
         }
-        ui.label(format!("Speed: x{:.6}", self.speed));
+
+        if self.ui_states.speed == 0f64 {
+            if let Some(speed) = self.ui_states.speed_buf.first() {
+                self.ui_states.speed = *speed;
+            }
+        }
+        if self.ui_states.speed_buf.len() >= 10 {
+            self.ui_states.speed = self.ui_states.speed_buf.iter().sum::<f64>()
+                / self.ui_states.speed_buf.len() as f64;
+            self.ui_states.speed_buf.clear();
+        }
+        ui.label(format!("Speed: x{:.6}", self.ui_states.speed));
 
         ui.separator();
 
