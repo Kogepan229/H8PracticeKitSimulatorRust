@@ -348,8 +348,13 @@ impl Simulator {
                 let visuals = ui.style().interact_selectable(&response, false);
                 let rect = rect.expand(visuals.expansion);
                 let radius = 0.5 * rect.width();
-                ui.painter()
-                    .rect(rect, radius, visuals.bg_fill, visuals.bg_stroke);
+                ui.painter().rect(
+                    rect,
+                    radius,
+                    visuals.bg_fill,
+                    visuals.bg_stroke,
+                    egui::StrokeKind::Inside,
+                );
                 let circle_y = egui::lerp((rect.top() + radius)..=(rect.bottom() - radius), how_on);
                 let center = egui::pos2(rect.center().x, circle_y);
                 let mut stroke = visuals.fg_stroke;
@@ -378,8 +383,13 @@ impl Simulator {
                 let visuals = ui.style().interact_selectable(&response, false);
                 let rect = rect.expand(visuals.expansion);
                 let radius = 0.5 * rect.width();
-                ui.painter()
-                    .rect(rect, radius, visuals.bg_fill, visuals.bg_stroke);
+                ui.painter().rect(
+                    rect,
+                    radius,
+                    visuals.bg_fill,
+                    visuals.bg_stroke,
+                    egui::StrokeKind::Inside,
+                );
                 let center = egui::pos2(rect.center().x, rect.top() + radius);
                 let mut stroke = visuals.fg_stroke;
                 stroke.width = 1.0;
